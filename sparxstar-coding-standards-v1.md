@@ -13,7 +13,7 @@ This is an engineering document. It defines measurable, testable, enforceable st
 | WHY THIS IS NOT JUST CODING STANDARDS | Traditional coding standards govern naming, formatting, and basic implementation rules. This document governs more than that — and deliberately so. In systems serving constrained environments, you cannot separate code correctness from runtime behavior, system interaction, and failure handling. Bad code does not just fail — it consumes bandwidth that costs money, drains batteries, and degrades service for real users who have no alternative. Code, runtime limits, concurrency rules, cache behavior, failure handling, governance, and infrastructure boundaries are inseparable. This document enforces all of them together because separating them produces an incomplete standard that breaks in production. |
 | :---- | :---- |
 
-| SCOPE | Stack: WordPress (latest stable), PHP (latest stable with active support), JavaScript, GraphQL, TUS, Edge layer (provider-agnostic), web server or equivalent, application runtime, relational database or equivalent, distributed object cache, bytecode cache. Provider selection follows Section 0.7. Sirus is the cross-repo authority layer referenced throughout. |
+| SCOPE | Applies to: all languages and frameworks in use (PHP/WordPress as primary reference implementation; React/TypeScript and Node.js stubs included), all API transport layers (REST, GraphQL, TUS), AI tool servers, provider-agnostic edge layer (CDN, reverse proxy, HTTP cache), distributed object cache, bytecode cache, relational and graph databases. Reference implementations appear in parentheses throughout and are mapped in Appendix A. Provider selection follows Section 0.7. The cross-repo authority layer (Sirus) is the only named service dependency in this document — see Section 1. |
 | :---- | :---- |
 
 | SIRUS | Sirus is not a helper library. It is not an optional service. It is a required dependency — a control plane that every governed repository must integrate. No repo may independently determine authority, context, or applicable rules. All such resolution is delegated to Sirus. If Sirus is unavailable: fail closed. No fallback. No guessing. |
@@ -170,9 +170,15 @@ Before any governed action:
 | FAIL | local permission check without Sirus delegation |
 | :---- | :---- |
 
-# **2\.  PHP and WordPress Standards**
+# **2\.  Language and Framework Standards**
 
-## **2.1  Version Policy — Minimum Supported, Not Pinned**
+*This section governs language-specific and framework-specific coding rules across all supported runtimes and frameworks. Section 2.1 covers PHP and WordPress (server-side). Section 2.2 covers React and TypeScript (client-side). Section 2.3 covers Node.js (server-side). Additional languages and frameworks follow the same structural pattern.*
+
+## **2.1  PHP and WordPress**
+
+*This subsection governs all PHP server-side code and WordPress-specific patterns. WordPress-specific rules are not abstracted — they are correctly scoped here.*
+
+### **2.1.1  Version Policy — Minimum Supported, Not Pinned**
 
 | PRINCIPLE | This document does not pin to specific version numbers. Version pins in a standards document create maintenance debt — the document becomes wrong the moment a new release ships, and nobody updates it. We build at the front of the supported window. We test against the supported minimum. We never write for the unsupported minimum. |
 | :---- | :---- |
@@ -185,7 +191,7 @@ Before any governed action:
 
 *The WordPress community supports environments going back years. We respect that users run older environments. We do not write older code to match them. A plugin can support WordPress 6.x while being written in modern PHP with strict types. These are separable concerns.*
 
-## **2.2  Strict Typing — Mandatory**
+### **2.1.2  Strict Typing — Mandatory**
 
 ```php
 // Required at top of every PHP file
@@ -202,7 +208,7 @@ function process($path, $duration) { ... }  // no types
 | :---- | :---- |
 | **FAIL** | function missing typed parameters or return type |
 
-## **2.3  Input Discipline**
+### **2.1.3  Input Discipline**
 
 All input must be sanitized before use. No raw superglobals. No implicit casting.
 
@@ -217,7 +223,7 @@ $text = $_POST['text'];    // raw superglobal
 $id   = (int)$_GET['id']; // implicit cast without validation
 ```
 
-## **2.4  Database Rules**
+### **2.1.4  Database Rules**
 
 * All writes require explicit schema mapping and validation before write
 
@@ -236,7 +242,7 @@ $id   = (int)$_GET['id']; // implicit cast without validation
 | **FAIL** | SELECT \* in any query |
 | **FAIL** | unbounded query without LIMIT |
 
-## **2.5  Object Caching — Distributed Cache Layer**
+### **2.1.5  Object Caching — Distributed Cache Layer**
 
 * All cache entries must have defined TTL. No infinite TTL.
 
@@ -248,7 +254,7 @@ $id   = (int)$_GET['id']; // implicit cast without validation
 
 * The distributed cache is a cache only. Never the source of truth.
 
-## **2.6  Bytecode Cache — Production Configuration**
+### **2.1.6  Bytecode Cache — Production Configuration**
 
 *PHP-specific: this subsection applies to PHP deployments using OPcache. Apply equivalent bytecode cache configuration for other runtimes (e.g., Node.js uses V8's built-in JIT; JVM languages have their own JIT settings).*
 
@@ -259,7 +265,7 @@ opcache.memory_consumption  = 128
 opcache.max_accelerated_files = 10000
 ```
 
-## **2.7  WordPress Plugin Rules**
+### **2.1.7  WordPress Plugin and Asset Rules**
 
 * All plugins must be namespaced — no global namespace pollution
 
@@ -278,7 +284,7 @@ wp_enqueue_script('my-plugin-handle', ...);
 wp_enqueue_script('my-plugin-handle', ...); // global, no guard
 ```
 
-## **2.8  Abilities and Consent API**
+### **2.1.8  Abilities and Consent API**
 
 Every action must check ability and verify consent before execution. Bypassing ability checks is forbidden. Assuming consent is forbidden.
 
@@ -296,6 +302,46 @@ if (!has_consent($user_id, 'recording')) {
 | FAIL | governed action without ability check |
 | :---- | :---- |
 | **FAIL** | governed action without consent verification |
+
+## **2.2  React and TypeScript**
+
+*Full standards for this subsection are in progress. The following governing principles apply immediately.*
+
+* Strict TypeScript required — `"strict": true` in `tsconfig.json`. No implicit `any`. No type assertions without inline justification comment.
+* Explicit interfaces required for all data shapes crossing component, API, or store boundaries.
+* Props and state must be typed with explicit interfaces, not inferred from initial values.
+* React components must be functional components with explicit return type annotations.
+* No inline logic in JSX — extract to named functions with typed signatures.
+* All side effects must be declared in `useEffect` with correct dependency arrays. No hidden side effects.
+* No direct DOM mutation from React components — use refs with explicit types.
+* Bundle size limits from Section 0.4 apply. Component lazy-loading required for non-critical paths.
+* Accessibility: all interactive elements must have explicit ARIA labels or semantic equivalents. Tested with axe-core in CI.
+
+| FAIL | TypeScript `strict` mode disabled |
+| :---- | :---- |
+| **FAIL** | Type assertion (`as Type`) without inline justification comment |
+| **FAIL** | Implicit `any` in function signatures or return types |
+| **FAIL** | Event handler without explicit event type |
+
+## **2.3  Node.js**
+
+*Full standards for this subsection are in progress. The following governing principles apply immediately.*
+
+* TypeScript required for all Node.js services — no plain JavaScript in production service code.
+* Strict types required — same `tsconfig.json` rules as Section 2.2.
+* All async operations must use `async/await` — no raw Promise chains without explicit error handling at every step.
+* All unhandled promise rejections must be caught at the call site — `process.on('unhandledRejection')` is not a substitute for correct error handling.
+* Environment variables required for all secrets, credentials, and environment-specific configuration. No hardcoded values in source code.
+* All inbound HTTP requests must be validated against an explicit schema before processing.
+* Memory limits: no unbounded in-memory accumulation. Streaming I/O required for large data sets.
+* Graceful shutdown required — handle `SIGTERM` and `SIGINT` with proper connection draining before exit.
+* All HTTP services must enforce the rate limits and header validation rules defined in Section 7.
+
+| FAIL | Secret or credential hardcoded in source code |
+| :---- | :---- |
+| **FAIL** | Unhandled promise rejection without catch at call site |
+| **FAIL** | Inbound request processed without schema validation |
+| **FAIL** | Service exits without graceful shutdown handler |
 
 # **3\.  JavaScript Standards**
 
@@ -823,11 +869,418 @@ Rate limit violations follow a defined escalation path. The system adapts to per
 | Pattern detection — scraping signals | Adaptive throttling — stricter limits applied |
 | Header spoofing detected | Immediate block — no escalation path |
 
-# **13\.  CI Enforcement Summary**
+# **13\.  Data Modeling Standards**
+
+| PRINCIPLE | Data must be stored in the most restrictive structure required to preserve its integrity, and no more. Only structure what must be correct. Everything else can stay flexible. |
+| :---- | :---- |
+
+| APPLIES TO | All data modeling decisions across relational, flexible-store, and graph layers. Applies to all database operations and schema design in every governed repository. |
+| :---- | :---- |
+
+## **13.1  Layer Responsibilities**
+
+| Layer | Role | When to Use |
+| :---- | :---- | :---- |
+| Relational Database (e.g., MariaDB, PostgreSQL) | Enforcement — constraints, joins, correctness | Governance, money, identity, rights |
+| Flexible Structured Store (e.g., JSON/JSONB columns) | Flexibility — structured but not enforced | Configs, metadata, display, queryable blobs |
+| Graph Database | Relationships — traversal, hierarchy, semantics | Multi-hop queries, derived-from, governed-by |
+| Document Store | Flexible schema — versioned, schema-free blobs | Append-only audit records, event sourcing. Never source of truth for governed data. |
+
+## **13.2  Decision Matrix**
+
+Apply these rules in order. Stop at the first match.
+
+**1. Governance / Legal / Money → Relational (Required)**
+
+Use relational tables whenever any of the following apply:
+
+* Consent or permission records
+* Payments, royalties, or financial obligations
+* Ownership, attribution, or rights assignment
+* Governance rules or authority definitions
+* Audit requirements — anything provable in court or arbitration
+* Override authority records
+
+*Why: Relational constraints are enforced at the database level. Joins are required for correct aggregation. A flexible-store column cannot enforce a foreign key. A governance system that cannot enforce its own rules is not a governance system.*
+
+**2. Structured + Queryable (Not Governance-Critical) → Flexible Store + Index**
+
+Use flexible structured storage when all three are true:
+
+* The data is structured and occasionally filtered
+* It is NOT used in joins
+* It is NOT governance-critical
+
+Requirements:
+
+* Add an appropriate index (e.g., GIN index for JSONB)
+* Document expected query patterns in schema comments
+
+*Queryable does not mean relational. The need to filter a flexible-store field is not sufficient reason to promote it to a relational column. The question is whether correctness must be enforced.*
+
+**3. Display / Informational → Flexible Store (No Index)**
+
+Use unindexed flexible storage when all are true:
+
+* Never filtered in a WHERE clause
+* Only read and rendered — never joined
+* No constraints needed on contents
+
+**4. Repeated Entities → Relational (Normalization Trigger)**
+
+If data meets any of the following, it must become a relational table:
+
+* Repeats across multiple rows
+* Requires its own identity (UUID or stable identifier)
+* Referenced from other tables
+
+*Repetition in flexible storage is a signal, not a solution.*
+
+**5. Spatial Data → Relational + Spatial Extension**
+
+Use a spatial database extension when coordinates require spatial query support.
+
+* Fictional or mythological entities must NOT have spatial geometry values
+* When coordinates are provided, the geometry column must be populated by trigger or application logic — never by raw client input
+
+**6. Cross-System Identity → Relational (Always)**
+
+The following fields must always be relational columns. Never in flexible storage:
+
+* Primary key (UUID or stable identifier)
+* Unique record identifier
+* Foreign keys to other tables
+
+*Identity fields in flexible storage cannot be indexed with enforced uniqueness, cannot be foreign-keyed, and cannot be reliably synchronized to dependent systems. This is an architectural requirement, not a preference.*
+
+**7. Graph Relationships → Graph Database Only**
+
+Model exclusively in the graph layer. Do not replicate in relational tables:
+
+* Hierarchy traversal of any depth
+* Semantic relationships between entities
+* Multi-hop queries
+
+*Graph databases exist specifically to own graph relationships. Modeling them in relational databases using recursive CTEs creates queries that are expensive, fragile, and difficult to maintain.*
+
+**8. Graph Database Stub**
+
+Graph databases are used exclusively for navigable relationship data. Never for primary record storage. Never as cache. The relational database remains the system of record for governed data — the graph layer reflects relationships derived from it.
+
+**9. Document Store Stub**
+
+Document stores are used for append-only event logs, audit trails, or schema-free blobs that are never the primary source of truth for governed records. Never store consent, financial, or rights data in a document store. Rules to be expanded as usage patterns are established.
+
+## **13.3  Decision Flow**
+
+When modeling any new field or table, apply these questions in order. Stop at the first YES.
+
+| # | Question | Answer |
+| :---: | :---- | :---- |
+| 1 | Does it affect governance, money, or rights? | **RELATIONAL** |
+| 2 | Does it need joins or a stable identity? | **RELATIONAL** |
+| 3 | Is it queried but not governance-critical? | **FLEXIBLE STORE + INDEX** |
+| 4 | Is it only displayed — never filtered or joined? | **FLEXIBLE STORE (no index)** |
+| 5 | Is it a repeated entity referenced elsewhere? | **RELATIONAL (normalize)** |
+| 6 | Does it require spatial queries? | **RELATIONAL + SPATIAL EXTENSION** |
+| 7 | Is it a relationship requiring traversal? | **GRAPH DATABASE** |
+
+## **13.4  Anti-Patterns**
+
+The following patterns are prohibited and must be corrected before merge.
+
+**Anti-Pattern 1 — Flexible Store for Governance**
+
+Consent rules, permission flags, or financial terms stored in flexible-store columns is a critical violation. These fields govern rights and money. They require relational enforcement.
+
+```sql
+-- WRONG
+consent_rules JSON  -- cannot enforce, cannot join, cannot audit reliably
+
+-- CORRECT
+consent_grants (relational table with foreign key constraints)
+```
+
+**Anti-Pattern 2 — Relational Tables for Display Blobs**
+
+Join tables for UI display data or informational arrays add write complexity with no integrity benefit.
+
+```sql
+-- WRONG
+CREATE TABLE project_credits (project_id UUID, person_id UUID, role TEXT)
+-- for display-only credits never queried by person_id
+
+-- CORRECT
+credits JSON  -- display blob, no joins needed
+```
+
+**Anti-Pattern 3 — Flexible Store Used in Joins**
+
+Joining on a flexible-store field bypasses the type system and produces unpredictable query plans. If a field appears in a JOIN condition, it must be a relational column.
+
+```sql
+-- WRONG
+JOIN records ON records.metadata->>'record_id' = events.record_id
+
+-- CORRECT
+JOIN records ON records.record_id = events.record_id  -- relational column
+```
+
+**Anti-Pattern 4 — Duplicate Modeling**
+
+Storing the same data in both a relational column and a flexible-store field creates drift. One will become stale. Pick one layer and own it.
+
+```sql
+-- WRONG
+status TEXT,       -- relational column
+metadata JSON,     -- also contains a status key
+
+-- CORRECT
+status TEXT        -- single source of truth
+```
+
+| FAIL | Governance or consent data stored in flexible-store column |
+| :---- | :---- |
+| **FAIL** | Flexible-store field used in JOIN condition without relational column |
+| **FAIL** | Same data stored in both relational column and flexible-store field |
+| **FAIL** | Graph relationship modeled in relational tables via recursive CTEs |
+| **FAIL** | Graph database used for primary record storage or as a cache |
+| **FAIL** | Document store used for consent, financial, or rights data |
+
+# **14\.  AI Tool Server Standards**
+
+| APPLIES TO | Any server that exposes tools to AI agents via a structured tool protocol (e.g., Model Context Protocol or equivalent). |
+| :---- | :---- |
+
+## **14.1  Protocol Compliance**
+
+* Use the official SDK for the target protocol. Do not implement protocol serialization from scratch.
+* If no SDK exists for the target language, use a gateway pattern: a thin intermediary in a supported language that translates protocol messages to REST calls handled by the business logic layer. The gateway contains no business logic.
+* Transport: prefer streamable HTTP. Fall back to server-sent events (SSE) where required.
+* Content-Type: `application/json` for all tool exchanges.
+
+## **14.2  Tool Naming**
+
+Tools use `snake_case` verb-noun format.
+
+Permitted verbs: `get`, `store`, `list`, `create`, `update`, `delete`, `process`, `transcribe`, `translate`, `mint`, `verify`, `submit`, `route`, `receive`, `generate`, `conduct`, `introspect`, `flag`, `apply`
+
+| PASS | `store_asset` |
+| :---- | :---- |
+| **FAIL** | `getAssetUrl` — camelCase forbidden |
+| **FAIL** | `asset_store` — noun before verb |
+| **FAIL** | `platform_store_asset` — no platform prefix in tool names |
+
+## **14.3  Tool Manifest**
+
+Every tool must declare in its `tools/list` response:
+
+* `name` — machine-readable, `snake_case`
+* `description` — one sentence, plain English
+* `inputSchema` — JSON Schema
+* `outputSchema` — JSON Schema (required extension)
+
+## **14.4  Authentication**
+
+Two-layer trust model required for governed operations:
+
+**Layer 1 — Agent Identity (who is calling?):** Machine-to-machine bearer token identifying the AI agent or developer. Carries scope. Required for all access tiers.
+
+**Layer 2 — User Context (on whose behalf?):** User context object in the request body identifying the human contributor. Required for write and submission operations.
+
+Rules:
+
+* Tokens must be short-lived — maximum 1 hour TTL.
+* Tokens must be introspected on every request via the authorization service. Do not cache introspection results beyond 60 seconds — revocation must take effect promptly.
+* Quota enforcement must be centralized in the authorization layer, not implemented per-server.
+* If `active` is false on introspection: return 401 immediately.
+* If scope is insufficient: return 403 with an upgrade path — never a bare 403.
+
+## **14.5  Request Envelope**
+
+Every tool call must include context:
+
+```json
+{
+  "tool": "tool_name",
+  "params": {},
+  "context": {
+    "request_id": "uuid-v4 — client-generated, for idempotency",
+    "user_id": "uuid — required for write operations"
+  }
+}
+```
+
+## **14.6  Response Format**
+
+**Success:**
+
+```json
+{
+  "request_id": "echo of client request_id",
+  "tool": "tool_name",
+  "result": {},
+  "meta": {
+    "processing_ms": 142,
+    "server": "server-name",
+    "version": "1.0.0"
+  }
+}
+```
+
+**Async operations** (long-running tools such as transcription or media processing):
+
+```json
+{
+  "result": {
+    "job_id": "uuid-v4",
+    "status": "queued",
+    "estimated_seconds": 45
+  }
+}
+```
+
+Job status values: `queued`, `processing`, `complete`, `failed`. Job state retained minimum 24 hours after completion. Maximum poll interval: 5 seconds.
+
+## **14.7  Error Handling**
+
+Never return a bare HTTP error without a response body.
+
+| Code | HTTP | Meaning |
+| :---- | :---- | :---- |
+| UNAUTHORIZED | 401 | No valid bearer token |
+| FORBIDDEN | 403 | Scope insufficient |
+| QUOTA_EXHAUSTED | 429 | Quota exhausted |
+| RATE_LIMITED | 429 | Short-term rate limit |
+| NOT_FOUND | 404 | Resource does not exist |
+| VALIDATION_ERROR | 422 | Input schema validation failed |
+| PROCESSING_FAILED | 500 | Async job failed |
+| SERVER_ERROR | 500 | Internal error |
+
+Every 403 must include an upgrade path in the response body. Never a bare 403.
+
+## **14.8  Signal Emission**
+
+When a tool server emits signals or events to downstream systems (analytics, audit, rewards):
+
+* Fire and forget — never `await` the signal emission.
+* Signal failure must never affect the primary operation result.
+* Emit signals for successful completion only. Never emit for failed operations.
+
+```javascript
+// Fire and forget — do not await
+fetch(process.env.SIGNAL_WEBHOOK_URL, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(signal),
+}).catch(() => {
+  // Signal failure is silent — must not affect the primary response
+});
+```
+
+## **14.9  Environment Variables**
+
+Every tool server requires at minimum:
+
+```
+SERVER_NAME        machine-readable server identifier
+SERVER_VERSION     semver version string
+AUTH_URL           authorization service endpoint
+LOG_LEVEL          debug | info | warn | error
+```
+
+All server-specific credentials (API keys, database connection strings, storage keys) must be documented in each server's own specification. Never hardcoded in source code. Never committed to version control.
+
+## **14.10  Versioning**
+
+* Servers are versioned independently using semantic versioning (semver).
+* Breaking changes to tool input/output schema require a version increment.
+* Server version must be included in every response in `meta.version`.
+* Tool names are stable once published. A tool is never renamed — create a new tool and deprecate the old one with a sunset date in the description.
+* Deprecated tools remain available minimum 6 months after the deprecation notice.
+
+| FAIL | Breaking tool schema change deployed without version increment |
+| :---- | :---- |
+| **FAIL** | Tool renamed instead of deprecated + replaced |
+| **FAIL** | Deprecated tool removed before 6-month minimum sunset window |
+| **FAIL** | Bare HTTP error returned without response body |
+| **FAIL** | Signal emission blocks or affects primary operation result |
+
+# **15\.  Repository Documentation Standards**
+
+| APPLIES TO | All repositories maintained under this standards document. |
+| :---- | :---- |
+
+## **15.1  Required Documentation Files**
+
+Every repository must include the following at the root level:
+
+| File | Purpose |
+| :---- | :---- |
+| `README.md` | Entry point. What the repository does, how to set it up, and what it depends on. |
+| `CONTRIBUTING.md` | How to contribute: branch naming, commit format, and review process. |
+| `.github/copilot-instructions.md` | AI coding assistant context — stack, patterns, what to avoid, relevant standards. |
+| `AGENTS.md` | Autonomous agent instructions — equivalent to `copilot-instructions.md` for agent frameworks that read this file. |
+
+## **15.2  copilot-instructions.md and AGENTS.md Requirements**
+
+These files provide context to AI coding assistants and autonomous agents. They must include:
+
+* The platform and language stack in use (e.g., PHP 8.2, WordPress 6.x, strict types required)
+* Core architectural constraints (e.g., "all governed operations call the authority layer before executing")
+* What this repository does and what it does not do
+* Patterns to follow, with short code examples where useful
+* Patterns to avoid, with brief explanations
+* Reference to this coding standards document
+
+These files must be kept current with the codebase. Stale instructions are worse than no instructions — they actively mislead the assistant.
+
+| FAIL | `copilot-instructions.md` or `AGENTS.md` absent from repository |
+| :---- | :---- |
+| **FAIL** | Instructions describe architecture or APIs that no longer exist in the codebase |
+
+## **15.3  README Requirements**
+
+A README must include:
+
+* What this repository is (one clear paragraph)
+* Dependencies and prerequisites
+* How to install and run in development
+* How to run the test suite
+* Reference to the relevant specification document, if one exists
+* A link to this coding standards document
+
+A README must not include:
+
+* Secrets, credentials, or environment-specific values
+* Setup instructions that only work on a specific developer's machine
+* Stale or untested steps
+
+## **15.4  Commit Message Standards**
+
+Format: `type(scope): short description`
+
+Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `ci`
+
+Scope: the component or module affected (e.g., `auth`, `dal`, `api`)
+
+Short description: imperative mood, present tense, maximum 72 characters. Body optional — used to explain *why*, not *what*, for non-obvious changes.
+
+```
+feat(auth): add token introspection on every request
+fix(dal): prevent partial write on triple binding failure
+docs(readme): update setup instructions for PHP 8.3
+```
+
+| FAIL | Commit message without type prefix |
+| :---- | :---- |
+| **FAIL** | Non-obvious change with no explanation of why in commit body |
+
+# **16\.  CI Enforcement Summary**
 
 These conditions must cause CI to fail in development and production modes. In draft mode CI warns but does not block.
 
-## **13.1  PHP**
+## **16.1  PHP and WordPress**
 
 | FAIL | PHP file missing declare(strict\_types=1) |
 | :---- | :---- |
@@ -839,7 +1292,7 @@ These conditions must cause CI to fail in development and production modes. In d
 | **FAIL** | governed action without ability check |
 | **FAIL** | governed action without consent verification |
 
-## **13.2  JavaScript**
+## **16.2  JavaScript**
 
 | FAIL | event listener without throttle or debounce |
 | :---- | :---- |
@@ -848,7 +1301,7 @@ These conditions must cause CI to fail in development and production modes. In d
 | **FAIL** | sensor active beyond 5 seconds without auto-disable |
 | **FAIL** | blob in memory exceeds 5 MB |
 
-## **13.3  Media**
+## **16.3  Media**
 
 | FAIL | audio sampleRate \> 16000 |
 | :---- | :---- |
@@ -858,7 +1311,7 @@ These conditions must cause CI to fail in development and production modes. In d
 | **FAIL** | video fps \> 15 |
 | **FAIL** | video codec is not H.264 Baseline |
 
-## **13.4  TUS**
+## **16.4  TUS**
 
 | FAIL | upload chunk \> 512 KB |
 | :---- | :---- |
@@ -866,20 +1319,20 @@ These conditions must cause CI to fail in development and production modes. In d
 | **FAIL** | upload without UUID |
 | **FAIL** | full-file upload endpoint present |
 
-## **13.5  GraphQL**
+## **16.5  GraphQL**
 
 | FAIL | query depth \> 5 |
 | :---- | :---- |
 | **FAIL** | N+1 query pattern in resolver |
 | **FAIL** | governed resolver without Sirus call |
 
-## **13.6  CSS**
+## **16.6  CSS**
 
 | FAIL | CSS bundle exceeds 50 KB |
 | :---- | :---- |
 | **FAIL** | blur filter or heavy shadow in production CSS |
 
-## **13.7  Distributed System Rules**
+## **16.7  Distributed System Rules**
 
 | FAIL | cache invalidation or event emission before DB commit confirmed |
 | :---- | :---- |
@@ -889,6 +1342,41 @@ These conditions must cause CI to fail in development and production modes. In d
 | **FAIL** | DB migration that is not rollback-safe |
 | **FAIL** | IndexedDB usage without defined eviction policy |
 | **FAIL** | direct provider-specific API call without abstraction layer |
+
+## **16.8  Data Modeling**
+
+| FAIL | Governance or consent data stored in flexible-store column |
+| :---- | :---- |
+| **FAIL** | Flexible-store field used in JOIN condition without relational column |
+| **FAIL** | Same data stored in both relational column and flexible-store field |
+| **FAIL** | Graph relationship modeled in relational tables via recursive CTEs |
+| **FAIL** | Graph database used for primary record storage or as a cache |
+| **FAIL** | Document store used for consent, financial, or rights data |
+
+## **16.9  AI Tool Server**
+
+| FAIL | Breaking tool schema change deployed without version increment |
+| :---- | :---- |
+| **FAIL** | Tool renamed instead of deprecated + replaced |
+| **FAIL** | Deprecated tool removed before 6-month minimum sunset window |
+| **FAIL** | Bare HTTP error returned without response body |
+| **FAIL** | Signal emission blocks or affects primary operation result |
+| **FAIL** | Secret or credential hardcoded in source code |
+
+## **16.10  TypeScript and Node.js**
+
+| FAIL | TypeScript `strict` mode disabled |
+| :---- | :---- |
+| **FAIL** | Implicit `any` in function signatures or return types |
+| **FAIL** | Unhandled promise rejection without catch at call site |
+| **FAIL** | Inbound request processed without schema validation |
+
+## **16.11  Repository Documentation**
+
+| FAIL | `copilot-instructions.md` or `AGENTS.md` absent from repository |
+| :---- | :---- |
+| **FAIL** | Commit message without type prefix |
+| **FAIL** | README absent from repository |
 
 # **Final Engineering Statement**
 
@@ -900,4 +1388,33 @@ These conditions must cause CI to fail in development and production modes. In d
 
 Version: 1.0  |  Starisian Technologies  |  April 2026
 
-Applies to: WordPress (latest stable), PHP (latest stable active support), JavaScript, GraphQL, TUS, provider-agnostic edge and infrastructure
+Applies to: all languages and frameworks (server-side and client-side), all relational and graph databases, all API transport layers, AI tool servers, provider-agnostic edge and infrastructure. Reference implementations are noted in parentheses where applicable. Standards extend to all languages and platforms adopted by any project using this document.
+
+---
+
+# **Appendix A — Reference Implementation Notes**
+
+*This appendix maps the role-based rules in this document to the specific technology choices of the team currently using it. The standards themselves do not change. This appendix is what changes when stack choices change.*
+
+*Teams adopting this document as their coding standard should replace this appendix with their own stack mapping. The rules in the main document apply to the roles — not to these specific products.*
+
+## **SPARXSTAR Reference Stack**
+
+| Role | Reference Implementation |
+| :---- | :---- |
+| Application Framework | WordPress (latest stable) |
+| Server-Side Runtime | PHP (latest stable with active support) |
+| Primary Relational Database | MariaDB |
+| Graph Database | Neo4j |
+| Flexible Structured Store | PostgreSQL JSONB |
+| Distributed Object Cache | Redis (via Predis PHP client) |
+| Bytecode Cache | OPcache (PHP reference implementation) |
+| Reverse Proxy | Nginx |
+| HTTP Cache (Origin) | Varnish |
+| Edge / CDN | Cloudflare |
+| Cross-Repo Authority Layer | Sirus |
+| File Transfer Protocol | TUS |
+| API Layer | GraphQL + REST |
+| Front-End Framework | React (TypeScript, strict mode) |
+| Node.js Runtime | Node.js (LTS) |
+| AI Tool Protocol | Model Context Protocol (MCP) |
