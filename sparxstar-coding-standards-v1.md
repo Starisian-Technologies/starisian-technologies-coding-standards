@@ -13,7 +13,7 @@ This is an engineering document. It defines measurable, testable, enforceable st
 | WHY THIS IS NOT JUST CODING STANDARDS | Traditional coding standards govern naming, formatting, and basic implementation rules. This document governs more than that — and deliberately so. In systems serving constrained environments, you cannot separate code correctness from runtime behavior, system interaction, and failure handling. Bad code does not just fail — it consumes bandwidth that costs money, drains batteries, and degrades service for real users who have no alternative. Code, runtime limits, concurrency rules, cache behavior, failure handling, governance, and infrastructure boundaries are inseparable. This document enforces all of them together because separating them produces an incomplete standard that breaks in production. |
 | :---- | :---- |
 
-| SCOPE | Stack: WordPress (latest stable), PHP (latest stable with active support), JavaScript, GraphQL, TUS, Edge layer (provider-agnostic), Apache or equivalent, PHP-FPM, MariaDB or equivalent, Redis (Predis), OPcache. Provider selection follows Section 0.7. Sirus is the cross-repo authority layer referenced throughout. |
+| SCOPE | Stack: WordPress (latest stable), PHP (latest stable with active support), JavaScript, GraphQL, TUS, Edge layer (provider-agnostic), web server or equivalent, application runtime, relational database or equivalent, distributed object cache, bytecode cache. Provider selection follows Section 0.7. Sirus is the cross-repo authority layer referenced throughout. |
 | :---- | :---- |
 
 | SIRUS | Sirus is not a helper library. It is not an optional service. It is a required dependency — a control plane that every governed repository must integrate. No repo may independently determine authority, context, or applicable rules. All such resolution is delegated to Sirus. If Sirus is unavailable: fail closed. No fallback. No guessing. |
@@ -36,11 +36,17 @@ Every system MUST declare its operating mode. Mode governs limits, logging verbo
 
 ## **0.2  Determinism Rule**
 
-Same input produces the same output with no hidden side effects. Applies to pure PHP functions, derived computations, validation, serialization, and read-only request paths including REST reads and GraphQL query resolvers.
+Same input produces the same output with no hidden side effects. Applies to pure functions, derived computations, validation, serialization, and read-only request paths including REST reads and GraphQL query resolvers.
 
 ## **0.2.1  Mutation Rule**
 
-Mutations, REST writes, GraphQL mutation resolvers, and Sirus-governed actions are not required to be deterministic in the strict sense. They MUST declare side-effect boundaries, perform only the minimum intended state change, and be idempotent where retries, replays, or network duplication are possible. Allowed nondeterminism is limited to trusted server-generated values required for correctness, including server time, UUIDs, and database-assigned identifiers; such values MUST be explicit in code, never inferred from hidden global state, and MUST NOT introduce undeclared side effects.
+Mutations, REST writes, GraphQL mutation resolvers, and governed actions are not required to be deterministic in the strict sense. They MUST:
+
+* Declare side-effect boundaries explicitly.
+* Perform only the minimum intended state change.
+* Be idempotent where retries, replays, or network duplication are possible.
+
+Allowed nondeterminism is limited to trusted server-generated values required for correctness (server time, UUIDs, database-assigned identifiers). Such values MUST be explicit in code, never inferred from hidden global state, and MUST NOT introduce undeclared side effects.
 
 ## **0.3  No Silent Failure**
 
@@ -88,8 +94,8 @@ This section is intentionally reserved to preserve numbering stability for cross
 | Client | Untrusted | Validate everything. Assume nothing. |
 | API layer | Validated | Validates all upstream input before acting. |
 | Sirus output | Authoritative | Must not be modified, merged, or overridden downstream. |
-| Cache (Redis) | Disposable | Never treat as source of truth. Always verify. |
-| DB (MariaDB) | Authoritative | Single source of truth. Never trusts upstream. |
+| Distributed Cache | Disposable | Never treat as source of truth. Always verify. |
+| Primary Database | Authoritative | Single source of truth. Never trusts upstream. |
 | Edge cache | Disposable | TTL-bounded. Invalidated on write. |
 
 # **1\.  Sirus — Cross-Repo Authority Layer**
@@ -175,23 +181,22 @@ Before any governed action:
 | :---- | :---- | :---- |
 | WordPress | Latest stable release | No deprecated WP APIs. The community's backwards compatibility culture is a feature for adoption, not a target for development. |
 | PHP | Latest stable with active support | Not security-only. Not end-of-life. Strict types required. No dynamic properties. |
-| MariaDB | Latest stable — provider-agnostic | No direct SQL interpolation. All queries parameterized. No provider-specific extensions without abstraction layer. |
+| Relational Database | Latest stable — provider-agnostic | No direct SQL interpolation. All queries parameterized. No provider-specific extensions without abstraction layer. |
 
 *The WordPress community supports environments going back years. We respect that users run older environments. We do not write older code to match them. A plugin can support WordPress 6.x while being written in modern PHP with strict types. These are separable concerns.*
 
 ## **2.2  Strict Typing — Mandatory**
 
+```php
 // Required at top of every PHP file
-
 declare(strict_types=1);
 
 // All functions must have typed parameters and return types
-
-function process\_audio(string $path, int $duration): array { ... }
+function process_audio(string $path, int $duration): array { ... }
 
 // Forbidden
-
 function process($path, $duration) { ... }  // no types
+```
 
 | **FAIL** | PHP file missing declare(strict_types=1) |
 | :---- | :---- |
@@ -201,19 +206,16 @@ function process($path, $duration) { ... }  // no types
 
 All input must be sanitized before use. No raw superglobals. No implicit casting.
 
+```php
 // Required
-
-$text  \= sanitize\_text\_field($\_POST\['text'\] ?? '');
-
-$key   \= sanitize\_key($\_GET\['key'\] ?? '');
-
+$text  = sanitize_text_field($_POST['text'] ?? '');
+$key   = sanitize_key($_GET['key'] ?? '');
 $email = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
 
 // Forbidden
-
-$text \= $\_POST\['text'\];    // raw superglobal
-
-$id   \= (int)$\_GET\['id'\]; // implicit cast without validation
+$text = $_POST['text'];    // raw superglobal
+$id   = (int)$_GET['id']; // implicit cast without validation
+```
 
 ## **2.4  Database Rules**
 
@@ -234,7 +236,7 @@ $id   \= (int)$\_GET\['id'\]; // implicit cast without validation
 | **FAIL** | SELECT \* in production queries |
 | **FAIL** | unbounded query without LIMIT |
 
-## **2.5  Object Caching — Redis / Predis**
+## **2.5  Object Caching — Distributed Cache Layer**
 
 * All cache entries must have defined TTL. No infinite TTL.
 
@@ -244,17 +246,18 @@ $id   \= (int)$\_GET\['id'\]; // implicit cast without validation
 
 * Write operations must invalidate related cache entries immediately
 
-* Redis is a cache only. Never the source of truth.
+* The distributed cache is a cache only. Never the source of truth.
 
-## **2.6  OPcache — Production Configuration**
+## **2.6  Bytecode Cache — Production Configuration**
 
+*PHP-specific: this subsection applies to PHP deployments using OPcache. Apply equivalent bytecode cache configuration for other runtimes (e.g., Node.js uses V8's built-in JIT; JVM languages have their own JIT settings).*
+
+```ini
 ; Production only
-
-opcache.validate\_timestamps \= 0
-
-opcache.memory\_consumption  \= 128
-
-opcache.max\_accelerated\_files \= 10000
+opcache.validate_timestamps = 0
+opcache.memory_consumption  = 128
+opcache.max_accelerated_files = 10000
+```
 
 ## **2.7  WordPress Plugin Rules**
 
@@ -270,12 +273,12 @@ opcache.max\_accelerated\_files \= 10000
 
   if (\!is\_page('media-record')) return;
 
-  wp\_enqueue\_script('sparxstar-recorder', ...);
+  wp\_enqueue\_script('my-component', ...);
 
 
   // Forbidden
 
-  wp\_enqueue\_script('sparxstar-recorder', ...); // global, no guard
+  wp\_enqueue\_script('my-component', ...); // global, no guard
 
 ## **2.8  Abilities and Consent API**
 
@@ -528,7 +531,7 @@ Either the upload completes fully and the DB write succeeds, or both are rolled 
 | **FAIL** | unbounded list query without explicit limit |
 | **FAIL** | governed resolver without Sirus authority check |
 
-# **7\.  Edge Layer — Cloudflare, Nginx, Varnish**
+# **7\.  Edge Layer — CDN, Reverse Proxy, HTTP Cache**
 
 ## **7.1  Request Filtering — Hard Fail Conditions**
 
@@ -588,7 +591,7 @@ Machines do not oops. Invalid request behavior is treated as intent, not error.
 
 * Write operations must invalidate edge cache immediately
 
-* Varnish and Cloudflare are disposable caches — never sources of truth
+* Edge caches and CDN layers are disposable caches — never sources of truth
 
 ## **7.5  Access Tiers**
 
@@ -612,8 +615,8 @@ Machines do not oops. Invalid request behavior is treated as intent, not error.
 
 | Layer | Role | Rule |
 | :---- | :---- | :---- |
-| MariaDB | Authoritative | The source of truth. Never trusts upstream. |
-| Redis | Cache only | Never source of truth. Short TTL. Invalidated on write. |
+| Primary Database | Authoritative | The source of truth. Never trusts upstream. |
+| Distributed Cache | Cache only | Never source of truth. Short TTL. Invalidated on write. |
 | Edge cache | Disposable | TTL-bounded. Purged on write. Never queried for authority. |
 | GraphQL cache | Disposable | Must not serve stale data beyond defined TTL. |
 
@@ -621,63 +624,50 @@ Machines do not oops. Invalid request behavior is treated as intent, not error.
 
 TTL alone is not a cache invalidation strategy. Write operations must actively invalidate.
 
+```php
 // Required on every write
-
 DB::write($data);
-
-Redis::delete($cache\_key);
-
+Cache::delete($cache_key);
 EdgeCache::purge($route);
 
 // Forbidden
-
 // Relying on TTL expiry to propagate write changes
+```
 
 ## **8.4  Backpressure and Load Shedding**
 
 When the system is saturated, reject early rather than queue unbounded.
 
+```php
 // Priority order when under load
-
-if (system\_load \> THRESHOLD) {
-
-  // 1\. Protect active authenticated sessions
-
-  // 2\. Accept writes from established connections
-
-  // 3\. Reject new unauthenticated requests with 503
-
-  // 4\. Drop lowest-priority traffic first
-
-  return new WP\_Error('overloaded', '', \['status' \=\> 503\]);
-
+if (system_load > THRESHOLD) {
+  // 1. Protect active authenticated sessions
+  // 2. Accept writes from established connections
+  // 3. Reject new unauthenticated requests with 503
+  // 4. Drop lowest-priority traffic first
+  return response(503); // Service Unavailable — reject new traffic
 }
+```
 
 ## **8.5  Partial Failure Handling**
 
 There are no partial success states. An operation either succeeds completely or is rolled back completely.
 
+```php
 // Required — wrap multi-step operations in transaction
-
-$db-\>begin\_transaction();
+$upload_result = null;
+$db->begin_transaction();
 
 try {
-
-  $upload\_result \= store\_file($path);
-
-  $db\_result     \= write\_record($upload\_result);
-
-  $db-\>commit();
-
+  $upload_result = store_file($path);
+  $db_result     = write_record($upload_result);
+  $db->commit();
 } catch (Exception $e) {
-
-  $db-\>rollback();
-
-  if ($upload\_result) { delete\_file($path); }
-
-  return new WP\_Error('operation\_failed', 'Rolled back.');
-
+  $db->rollback();
+  if ($upload_result !== null) { delete_file($path); }
+  throw new RuntimeException('Operation failed. Rolled back.');
 }
+```
 
 # **9\.  Async Processing and Queue Rules**
 
@@ -738,7 +728,7 @@ Required order on every write:
 
   1\. DB commit confirmed
 
-  2\. Cache invalidation (Redis)
+  2\. Cache invalidation (distributed cache layer)
 
   3\. Edge cache purge
 
