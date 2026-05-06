@@ -36,7 +36,11 @@ Every system MUST declare its operating mode. Mode governs limits, logging verbo
 
 ## **0.2  Determinism Rule**
 
-Same input produces the same output with no hidden side effects. Applies to PHP functions, REST handlers, GraphQL resolvers, and all Sirus-governed actions.
+Same input produces the same output with no hidden side effects. Applies to pure PHP functions, derived computations, validation, serialization, and read-only request paths including REST reads and GraphQL query resolvers.
+
+## **0.2.1  Mutation Rule**
+
+Mutations, REST writes, GraphQL mutation resolvers, and Sirus-governed actions are not required to be deterministic in the strict sense. They MUST declare side-effect boundaries, perform only the minimum intended state change, and be idempotent where retries, replays, or network duplication are possible. Allowed nondeterminism is limited to trusted server-generated values required for correctness, including server time, UUIDs, and database-assigned identifiers; such values MUST be explicit in code, never inferred from hidden global state, and MUST NOT introduce undeclared side effects.
 
 ## **0.3  No Silent Failure**
 
