@@ -50,7 +50,7 @@ Allowed nondeterminism is limited to trusted server-generated values required fo
 
 ## **0.3  No Silent Failure**
 
-Every failure must return a defined error, log internally with full context, and never fallback silently. The client receives a generic error. The server logs the full context. Stack traces never reach the client.
+Every failure must return a defined error, log internally with full context, and never fall back silently. The client receives a generic error. The server logs the full context. Stack traces never reach the client.
 
 ## **0.4  Bounded Execution — Hard Caps**
 
