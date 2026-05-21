@@ -882,7 +882,7 @@ Rate limit violations follow a defined escalation path. The system adapts to per
 | Layer | Role | When to Use |
 | :---- | :---- | :---- |
 | Relational Database | Enforcement — constraints, joins, correctness | Governance, money, identity, rights |
-| Flexible Structured Store (e.g., JSON/JSONB columns) | Flexibility — structured but not enforced | Configs, metadata, display, queryable blobs |
+| Flexible Structured Store (e.g., JSON or binary-JSON columns) | Flexibility — structured but not enforced | Configs, metadata, display, queryable blobs |
 | Graph Database | Relationships — traversal, hierarchy, semantics | Multi-hop queries, derived-from, governed-by |
 | Document Store | Flexible schema — versioned, schema-free blobs | Append-only audit records; event sourcing in non-governed domains only. Never source of truth for governed data. |
 
@@ -913,7 +913,7 @@ Use flexible structured storage when all three are true:
 
 Requirements:
 
-* Add an appropriate index (e.g., GIN index for JSONB)
+* Add an appropriate index on the flexible-store column
 * Document expected query patterns in schema comments
 
 *Queryable does not mean relational. The need to filter a flexible-store field is not sufficient reason to promote it to a relational column. The question is whether correctness must be enforced.*
