@@ -13,7 +13,7 @@ This is an engineering document. It defines measurable, testable, enforceable st
 | WHY THIS IS NOT JUST CODING STANDARDS | Traditional coding standards govern naming, formatting, and basic implementation rules. This document governs more than that — and deliberately so. In systems serving constrained environments, you cannot separate code correctness from runtime behavior, system interaction, and failure handling. Bad code does not just fail — it consumes bandwidth that costs money, drains batteries, and degrades service for real users who have no alternative. Code, runtime limits, concurrency rules, cache behavior, failure handling, governance, and infrastructure boundaries are inseparable. This document enforces all of them together because separating them produces an incomplete standard that breaks in production. |
 | :---- | :---- |
 
-| SCOPE | Applies to: all languages and frameworks in use (PHP/WordPress as primary reference implementation; React/TypeScript and Node.js stubs included), all API transport layers (REST, GraphQL, TUS), AI tool servers, provider-agnostic edge layer (CDN, reverse proxy, HTTP cache), distributed object cache, bytecode cache, relational and graph databases. Reference implementations appear in parentheses throughout and are mapped in Appendix A. Provider selection follows Section 0.7. The cross-repo authority layer (Sirus) is the only named service dependency in this document — see Section 1. |
+| SCOPE | Applies to: all languages and frameworks in use (PHP/WordPress as primary reference implementation; React/TypeScript and Node.js stubs included), all API transport layers (REST, GraphQL, TUS), AI tool servers, provider-agnostic edge layer (CDN, reverse proxy, HTTP cache), distributed object cache, bytecode cache, relational and graph databases. All rules are role-based; reference implementations are documented in Appendix A. Provider selection follows Section 0.7. The cross-repo authority layer (Sirus) is the only named service dependency in this document — see Section 1. |
 | :---- | :---- |
 
 | SIRUS | Sirus is not a helper library. It is not an optional service. It is a required dependency — a control plane that every governed repository must integrate. No repo may independently determine authority, context, or applicable rules. All such resolution is delegated to Sirus. If Sirus is unavailable: fail closed. No fallback. No guessing. |
@@ -881,10 +881,10 @@ Rate limit violations follow a defined escalation path. The system adapts to per
 
 | Layer | Role | When to Use |
 | :---- | :---- | :---- |
-| Relational Database (e.g., MariaDB, PostgreSQL) | Enforcement — constraints, joins, correctness | Governance, money, identity, rights |
+| Relational Database | Enforcement — constraints, joins, correctness | Governance, money, identity, rights |
 | Flexible Structured Store (e.g., JSON/JSONB columns) | Flexibility — structured but not enforced | Configs, metadata, display, queryable blobs |
 | Graph Database | Relationships — traversal, hierarchy, semantics | Multi-hop queries, derived-from, governed-by |
-| Document Store | Flexible schema — versioned, schema-free blobs | Append-only audit records, event sourcing. Never source of truth for governed data. |
+| Document Store | Flexible schema — versioned, schema-free blobs | Append-only audit records; event sourcing in non-governed domains only. Never source of truth for governed data. |
 
 ## **13.2  Decision Matrix**
 
@@ -1049,7 +1049,7 @@ status TEXT        -- single source of truth
 
 # **14\.  AI Tool Server Standards**
 
-| APPLIES TO | Any server that exposes tools to AI agents via a structured tool protocol (e.g., Model Context Protocol or equivalent). |
+| APPLIES TO | Any server that exposes tools to AI agents via a structured tool protocol. |
 | :---- | :---- |
 
 ## **14.1  Protocol Compliance**
@@ -1132,10 +1132,17 @@ Every tool call must include context:
 
 ```json
 {
+  "request_id": "echo of client request_id",
+  "tool": "tool_name",
   "result": {
     "job_id": "uuid-v4",
     "status": "queued",
     "estimated_seconds": 45
+  },
+  "meta": {
+    "processing_ms": 5,
+    "server": "server-name",
+    "version": "1.0.0"
   }
 }
 ```
@@ -1164,7 +1171,7 @@ Every 403 must include an upgrade path in the response body. Never a bare 403.
 When a tool server emits signals or events to downstream systems (analytics, audit, rewards):
 
 * Fire and forget — never `await` the signal emission.
-* Signal failure must never affect the primary operation result.
+* Signal failure must never affect the primary operation result — log the error for operational visibility.
 * Emit signals for successful completion only. Never emit for failed operations.
 
 ```javascript
@@ -1173,8 +1180,9 @@ fetch(process.env.SIGNAL_WEBHOOK_URL, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(signal),
-}).catch(() => {
-  // Signal failure is silent — must not affect the primary response
+}).catch((err) => {
+  // Signal failure must not affect the primary response — log for operational visibility
+  console.error('[signal] emission failed:', err?.message ?? err);
 });
 ```
 
@@ -1368,15 +1376,21 @@ These conditions must cause CI to fail in development and production modes. In d
 | FAIL | TypeScript `strict` mode disabled |
 | :---- | :---- |
 | **FAIL** | Implicit `any` in function signatures or return types |
+| **FAIL** | Type assertion (`as Type`) without inline justification comment |
+| **FAIL** | Event handler without explicit event type |
 | **FAIL** | Unhandled promise rejection without catch at call site |
 | **FAIL** | Inbound request processed without schema validation |
+| **FAIL** | Service exits without graceful shutdown handler |
 
 ## **16.11  Repository Documentation**
 
-| FAIL | `copilot-instructions.md` or `AGENTS.md` absent from repository |
+| FAIL | `README.md` absent from repository |
 | :---- | :---- |
+| **FAIL** | `CONTRIBUTING.md` absent from repository |
+| **FAIL** | `copilot-instructions.md` or `AGENTS.md` absent from repository |
+| **FAIL** | Instructions describe architecture or APIs that no longer exist in the codebase |
 | **FAIL** | Commit message without type prefix |
-| **FAIL** | README absent from repository |
+| **FAIL** | Non-obvious change with no explanation of why in commit body |
 
 # **Final Engineering Statement**
 
