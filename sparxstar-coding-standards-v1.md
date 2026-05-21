@@ -665,7 +665,7 @@ EdgeCache::purge($route);
 
 When the system is saturated, reject early rather than queue unbounded.
 
-```php
+```text
 // Priority order when under load
 if (system_load > THRESHOLD) {
   // 1. Protect active authenticated sessions
