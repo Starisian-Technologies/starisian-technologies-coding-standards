@@ -1,6 +1,4 @@
-@copilot - Below is a strong Copilot instruction set you can paste directly.
-
----
+@copilot -
 
 ## GitHub Copilot Instructions: Final Production-Ready WordPress Plugin Review
 
