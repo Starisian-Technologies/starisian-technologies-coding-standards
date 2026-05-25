@@ -45,8 +45,8 @@ This file tracks current clarification questions against `sparxstar-coding-stand
 7. **Dead-letter queue rule (§12.3) has no retention policy**
    Alerting and manual retry are defined, but retention and deletion policy for dead-letter entries is not. Governance-sensitive failures need explicit retention and audit handling.
 
-8. **No code standard for DVE trust-tier propagation**
-   Trust tiers are referenced at edge level (§7.5), but there is no coding standard for how trust tier is represented and propagated through request lifecycle.
+8. **No code standard for access-tier propagation**
+   Access tiers are referenced at edge level (§7.5), but there is no coding standard for how access tier is represented and propagated through the request lifecycle.
 
 ## What This Implies for the Platform
 
