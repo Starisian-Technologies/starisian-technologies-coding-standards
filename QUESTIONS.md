@@ -28,7 +28,7 @@ This file tracks current clarification questions against `sparxstar-coding-stand
    Section 4.1 caps production audio at 120 seconds. This is efficient for everyday capture, but can truncate culturally important long-form recordings. Clarification is needed on whether this cap applies only to intake/capture while longer recordings use a governed async flow.
 
 2. **Concurrency model may be aggressive for low-end Android on 2G**
-   §0.4 and §8.1 enforce one concurrent operation and reject additional requests with 429. The standard should explicitly connect this with client queueing/retry behavior under high latency when responses may be delayed or dropped.
+   §0.4 appears to impose a one-operation-per-user rule, while §8.1 separately caps active mutations and active uploads and rejects concurrent requests with 429. The standard should explicitly connect this with client queueing/retry behavior under high latency when responses may be delayed or dropped.
 
 3. **Offline-first architecture lacks explicit state-machine standards**
    IndexedDB queueing is specified (§3.5), but there is no governed offline state model defining what is available offline, what queues, what blocks until online, and what requires fresh Sirus context.
