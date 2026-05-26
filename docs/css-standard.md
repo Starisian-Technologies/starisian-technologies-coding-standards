@@ -120,17 +120,23 @@ All visual values (colors, spacing, radii, type scale) must be expressed as CSS 
 - (X) `vh` units for critical layout heights without fallback (iOS Safari viewport quirk)
 
 ```css
-/* Required — mobile-first */
+/* Breakpoint token defined once — e.g., via PostCSS @custom-media plugin */
+/* @custom-media --spx-bp-md (min-width: 768px); */
+
+/* Required — mobile-first, breakpoint via named token */
 .spx-nav {
   display: flex;
   flex-direction: column;
 }
 
-@media (min-width: 768px) {
+@media (--spx-bp-md) {
   .spx-nav {
     flex-direction: row;
   }
 }
+
+/* Forbidden — hard-coded magic number */
+/* @media (min-width: 768px) { ... } */
 ```
 
 ---
