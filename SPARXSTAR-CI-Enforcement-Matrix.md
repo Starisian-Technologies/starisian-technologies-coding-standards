@@ -6,7 +6,7 @@ Companion to `/docs/standards-handbook.md` and implementation standards. This ma
 
 | Status | Meaning |
 | :--- | :--- |
-| `ENFORCED` | Must fail CI now |
+| `ENFORCED` | Must fail CI in the blocking modes defined by `docs/enforcement-matrix.md` |
 | `WARN` | CI warning only |
 | `SPECIFIED` | Required by architecture but not yet fully automated |
 | `REFERENCE` | Example implementation only |
