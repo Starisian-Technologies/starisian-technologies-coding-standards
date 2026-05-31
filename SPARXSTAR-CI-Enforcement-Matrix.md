@@ -63,5 +63,5 @@ Companion to `/docs/standards-handbook.md` and implementation standards. This ma
 ## Notes for CI Implementers
 
 - Keep `Rule ID` stable across repositories.
-- Treat `ENFORCED` as merge-blocking, `WARN` as non-blocking signal.
+- Treat `ENFORCED` as mode-sensitive: warn only in `draft`, block hard violations in `development`, and block all violations in `production`, matching `/docs/enforcement-matrix.md`.
 - Promote `SPECIFIED` rules to `ENFORCED` as automation lands; do not remove requirement language.
