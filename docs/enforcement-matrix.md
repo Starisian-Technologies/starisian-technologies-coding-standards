@@ -178,7 +178,7 @@ This document maps every enforceable rule in the SPARXSTAR standards to the tool
 | XML parser allows unsafe entity expansion or external entities | Security tests + parser policy checks | Test | (W) | (B) | (B) |
 | JSON payload accepted without schema or contract validation | Contract tests | Test | (W) | (B) | (B) |
 | Laravel request handling without explicit validation/authorization boundaries | PHPUnit + static analysis | Test / Static analysis | (W) | (B) | (B) |
-| Vite build without enforced asset budgets | Build tooling checks | Build | (W) | (B) | (B) |
+| Vite build output is non-deterministic or exceeds asset/bundle budgets | Build tooling checks | Build | (W) | (B) | (B) |
 
 ---
 
