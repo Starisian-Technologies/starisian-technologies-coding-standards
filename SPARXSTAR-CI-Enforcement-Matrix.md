@@ -47,7 +47,7 @@ Companion to `/docs/standards-handbook.md` and implementation standards. This ma
 | JS-001 | javascript-react-standard §3 | Fetch/API calls require timeout and bounded retry | JS/TS | ENFORCED | ESLint custom rule |
 | JS-002 | javascript-react-standard §6.2 | IndexedDB for critical offline data | JS/TS | ENFORCED | ESLint custom rule |
 | JS-003 | javascript-react-standard §11.2 | Helios required for auth (no custom frontend auth) | JS/TS | SPECIFIED | Architecture checks |
-| NODE-001 | node-standard §2 | TypeScript strict mode required | Node.js | ENFORCED | `tsc --noEmit` |
+| NODE-001 | node-standard §2 | TypeScript strict mode required | Node.js | ENFORCED | `tsc --noEmit` + `tsconfig` strict-mode validation |
 | NODE-002 | node-standard §4.3 | HTTP server timeout configuration required | Node.js | ENFORCED | Integration tests |
 | NODE-003 | node-standard §5 | Parameterized queries only | Node.js / SQL | ENFORCED | ESLint / query lint rules |
 | CSS-001 | css-standard §1 | CSS bundle must stay within 50 KB gzipped total per page | Frontend CSS | ENFORCED | Build size check |
@@ -63,5 +63,5 @@ Companion to `/docs/standards-handbook.md` and implementation standards. This ma
 ## Notes for CI Implementers
 
 - Keep `Rule ID` stable across repositories.
-- Treat `ENFORCED` as mode-sensitive: warn only in `draft`, block hard violations in `development`, and block all violations in `production`, matching `/docs/enforcement-matrix.md`.
+- Treat `ENFORCED` as mode-sensitive: warn only in `draft`, block violations in `development`, and block violations in `production`, matching `/docs/enforcement-matrix.md`.
 - Promote `SPECIFIED` rules to `ENFORCED` as automation lands; do not remove requirement language.
