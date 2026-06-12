@@ -1,0 +1,119 @@
+# Reusable workflow: enforce ADR-017 (pnpm platform-wide) in any consuming repo.
+#
+# Backs rule IDs NODE-PKG-001..004 in SPARXSTAR-CI-Enforcement-Matrix.md.
+# Per the master catalog (docs/standards-catalog.md, Part III Layer 3), this is the
+# template the rest of the per-domain reusable workflows follow: mode-aware (draft
+# warns; development+production block), thin wrapper, six-line caller per repo.
+#
+# Caller example (.github/workflows/standards.yml in a consuming repo):
+#
+#   name: Standards
+#   on: [pull_request, push]
+#   jobs:
+#     pnpm:
+#       uses: starisian-technologies/starisian-technologies-coding-standards/.github/workflows/pnpm-enforcement.yml@main
+#       with:
+#         mode: development   # draft | development | production
+
+name: pnpm enforcement (ADR-017)
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: 'System mode (draft warns; development/production block).'
+        required: false
+        type: string
+        default: development
+
+jobs:
+  enforce:
+    name: ADR-017 conformance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine block behavior
+        id: mode
+        shell: bash
+        run: |
+          case "${{ inputs.mode }}" in
+            draft) echo "block=false" >> "$GITHUB_OUTPUT" ;;
+            development|production) echo "block=true" >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "::error::Unknown mode '${{ inputs.mode }}' — expected draft | development | production"
+              exit 1
+              ;;
+          esac
+
+      - name: NODE-PKG-001 — no foreign lockfiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          forbidden=()
+          for f in package-lock.json yarn.lock npm-shrinkwrap.json; do
+            if [ -f "$f" ]; then forbidden+=("$f"); fi
+          done
+          if [ ${#forbidden[@]} -gt 0 ]; then
+            msg="ADR-017 (NODE-PKG-002): forbidden lockfile(s) present: ${forbidden[*]}"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"
+              exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: NODE-PKG-003 — packageManager field is pinned pnpm
+        if: hashFiles('package.json') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          pm=$(node -e "try { const p = require('./package.json'); process.stdout.write(p.packageManager || '') } catch (e) { process.stdout.write('') }")
+          if [[ "$pm" != pnpm@* ]]; then
+            msg="ADR-017 (NODE-PKG-003): package.json missing pinned packageManager (expected 'pnpm@<version>', got '${pm:-<unset>}')"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"
+              exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: NODE-PKG-001 — workflows/scripts do not invoke npm or yarn install
+        shell: bash
+        run: |
+          set -euo pipefail
+          patterns='(^|[^a-zA-Z_-])(npm[[:space:]]+(install|i|ci)\b|yarn[[:space:]]+(install|add)\b)'
+          hits=$(grep -REn --include='*.yml' --include='*.yaml' --include='*.sh' \
+              --include='Dockerfile*' --include='Makefile*' \
+              -e "$patterns" .github scripts Dockerfile* Makefile* 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            msg=$'ADR-017 (NODE-PKG-001): non-pnpm package manager invocation found:\n'"$hits"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"
+              exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: NODE-PKG-004 — pnpm install --frozen-lockfile dry run
+        if: hashFiles('package.json') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm install --frozen-lockfile
+          else
+            msg="ADR-017 (NODE-PKG-002): package.json present but pnpm-lock.yaml missing"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"
+              exit 1
+            else
+              echo "::warning::$msg"
+              pnpm install --no-frozen-lockfile
+            fi
+          fi

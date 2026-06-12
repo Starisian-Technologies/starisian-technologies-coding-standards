@@ -86,9 +86,9 @@ This document maps every enforceable rule in the SPARXSTAR standards to the tool
 | `SELECT *` in any query | ESLint (custom rule) | Lint | (W) | (B) | (B) |
 | Async route handler without error boundary | ESLint (custom rule) | Lint | (W) | (B) | (B) |
 | `console.log` in production code | ESLint `no-console` | Lint | (W) | (B) | (B) |
-| Package manager other than `pnpm` invoked (ADR-017) | CI workflow audit + repo lint | Lint / CI | (B) | (B) | (B) |
-| `package-lock.json` or `yarn.lock` present (ADR-017) | Repo file check | Lint | (B) | (B) | (B) |
-| `package.json` missing `packageManager: pnpm@...` (ADR-017) | Repo file check | Lint | (W) | (B) | (B) |
+| Package manager other than `pnpm` invoked (ADR-017) | `.github/workflows/pnpm-enforcement.yml` | CI | (W) | (B) | (B) |
+| `package-lock.json` or `yarn.lock` present (ADR-017) | `.github/workflows/pnpm-enforcement.yml` | CI | (W) | (B) | (B) |
+| `package.json` missing `packageManager: pnpm@...` (ADR-017) | `.github/workflows/pnpm-enforcement.yml` | CI | (W) | (B) | (B) |
 
 ---
 
