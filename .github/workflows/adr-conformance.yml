@@ -1,0 +1,120 @@
+# Reusable ADR Conformance Check — Starisian Technologies Coding Standards
+#
+# Lives in: THIS repo (single source of truth for conformance logic).
+# Trigger: workflow_call — called by the thin receiver wrapper in each consuming repo.
+#
+# This workflow is the DRY enforcement layer. The receiver in each consuming repo
+# is ≤12 lines; all logic lives here. When conformance checks expand (citations
+# diff, superseded ADR detection, INV status checks), update only this file.
+#
+# Caller pattern in consuming repo (.github/workflows/adr-conformance-receiver.yml):
+#
+#   on:
+#     repository_dispatch:
+#       types: [adr-registry-changed]
+#   jobs:
+#     conformance:
+#       uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/adr-conformance.yml@main
+#       with:
+#         change_type: ${{ github.event.client_payload.change_type }}
+#         changed_files: ${{ github.event.client_payload.changed_files }}
+#         source_sha: ${{ github.event.client_payload.source_sha }}
+#
+# See workflow-templates/adr-conformance-receiver.yml for the canonical template.
+
+name: ADR Conformance Check (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      change_type:
+        description: 'Type of registry change (enforcement-matrix | domain-standard | handbook | other).'
+        required: false
+        type: string
+        default: other
+      changed_files:
+        description: 'Space-separated list of changed file paths in the standards repo.'
+        required: false
+        type: string
+        default: ''
+      source_sha:
+        description: 'Commit SHA in the standards repo that triggered the dispatch.'
+        required: false
+        type: string
+        default: ''
+      mode:
+        description: 'System mode (draft warns; development/production block).'
+        required: false
+        type: string
+        default: development
+
+jobs:
+  conformance:
+    name: ADR registry conformance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Determine block behaviour
+        id: mode
+        shell: bash
+        run: |
+          case "${{ inputs.mode }}" in
+            draft) echo "block=false" >> "$GITHUB_OUTPUT" ;;
+            development|production) echo "block=true" >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "::error::Unknown mode '${{ inputs.mode }}' — expected draft | development | production"
+              exit 1
+              ;;
+          esac
+
+      - name: Log registry change notification
+        shell: bash
+        run: |
+          echo "=== ADR Registry Change Detected ==="
+          echo "Standards repo: Starisian-Technologies/starisian-technologies-coding-standards"
+          echo "Source SHA:     ${{ inputs.source_sha }}"
+          echo "Change type:    ${{ inputs.change_type }}"
+          echo "Changed files:  ${{ inputs.changed_files }}"
+          echo "====================================="
+
+      # FUTURE: Fetch the current standards registry and diff against
+      # ADR/INV/OQ citations in this repo's source files.
+      # Flag any citation that references a superseded or amended entry.
+      #
+      # Until that logic is built, the notification itself is the value:
+      # it ensures every consuming repo knows the registry changed and
+      # provides a visible signal on the next PR.
+
+      - name: Scan for ADR/INV/OQ citation patterns
+        id: scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Count citation patterns so we know this repo uses the registry.
+          adr_hits=$(grep -rE '\bADR-[0-9]{3}\b' --include='*.php' --include='*.ts' \
+            --include='*.js' --include='*.md' --include='*.yml' --include='*.yaml' \
+            . 2>/dev/null | wc -l || true)
+          inv_hits=$(grep -rE '\bINV-[0-9]{3}\b' --include='*.php' --include='*.ts' \
+            --include='*.js' --include='*.md' --include='*.yml' --include='*.yaml' \
+            . 2>/dev/null | wc -l || true)
+          oq_hits=$(grep -rE '\bOQ-[0-9]{3}\b' --include='*.php' --include='*.ts' \
+            --include='*.js' --include='*.md' --include='*.yml' --include='*.yaml' \
+            . 2>/dev/null | wc -l || true)
+          echo "adr_citations=${adr_hits}" >> "$GITHUB_OUTPUT"
+          echo "inv_citations=${inv_hits}" >> "$GITHUB_OUTPUT"
+          echo "oq_citations=${oq_hits}" >> "$GITHUB_OUTPUT"
+          echo "ADR citations found: ${adr_hits}"
+          echo "INV citations found: ${inv_hits}"
+          echo "OQ citations found:  ${oq_hits}"
+
+      - name: Post conformance notice
+        shell: bash
+        run: |
+          echo "::notice title=ADR Registry Changed::Standards registry updated \
+          (type: ${{ inputs.change_type }}). \
+          This repo has ${{ steps.scan.outputs.adr_citations }} ADR / \
+          ${{ steps.scan.outputs.inv_citations }} INV / \
+          ${{ steps.scan.outputs.oq_citations }} OQ citations. \
+          Review citations on your next PR if any referenced entries were amended or superseded."

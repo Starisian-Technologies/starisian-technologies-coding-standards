@@ -59,3 +59,75 @@ The document scopes to WordPress + PHP as the reference implementation. The Java
 **Question:** Is Python in scope for this document, or should it be governed by a separate standard?
 
 If Python services process audio and governed jobs, async job rules, bounded execution, and no-silent-failure expectations likely apply; however, there are no Python-specific enforcement rules. This should be explicitly scoped in or scoped out.
+
+---
+
+## Session Questions — 2026-06-16
+
+These questions arose during the workflow infrastructure session.
+
+### WF-1: ADR consumer registry — how does the sender know which repos to notify?
+
+The `adr-dispatch.yml` sender fires a `repository_dispatch` event to consuming repos when ADR-related files change. To dispatch cross-repo, the workflow needs a list of target repo slugs. Three options exist:
+
+- **Org secret** (`ADR_CONSUMER_REPOS`): comma-separated `owner/repo` list, stored once at the org level. Repos added or removed without touching this workflow.
+- **Hardcoded list in the workflow**: simple, version-controlled, but requires a PR here whenever a new repo joins the platform.
+- **GitHub App** with org-wide `contents:write` and `actions:write` scope: most scalable; dispatches to all repos in the org matching a topic tag.
+
+**Question:** Which mechanism do you want for the consumer registry? If org secret, I will document the secret name and format. If GitHub App, I will document the App permissions required.
+
+---
+
+### WF-2: Cross-repo dispatch token — PAT or GitHub App?
+
+Dispatching `repository_dispatch` to another repo requires a token with `repo` scope (or a GitHub App installation token). `GITHUB_TOKEN` is scoped to the current repo and cannot dispatch cross-repo.
+
+**Question:** Should this use a long-lived org-level PAT (`STANDARDS_DISPATCH_TOKEN`) or a GitHub App? A PAT is simpler now; a GitHub App does not expire and is better for automation at scale.
+
+---
+
+### WF-3: `first-interaction.yml` — standards-repo messages vs. product-repo messages
+
+The provided `first-interaction.yml` messages reference "auto-synced interfaces and contracts" — language appropriate for an interface/contract repo, not for this standards repo. The template in `workflow-templates/` carries placeholder `TODO:` markers for per-repo customization.
+
+**Question:** Do you want the first-interaction messages for THIS standards repo to address contributors proposing changes to the standards themselves? Or should this repo's issues be scoped to internal team only (i.e., no public first-interaction welcome needed)?
+
+---
+
+### WF-4: WordPress 7.0 and the Abilities API
+
+The problem statement references "We need WordPress 7.0 because we use the Abilities API." As of 2026-06, WordPress has not shipped a `7.0` release; the current series is `6.x`. The "Abilities API" (a modernization of the capabilities system) has been discussed in WordPress core proposals but is not in a stable release.
+
+**Question:** Is WordPress 7.0 the internal target version you are building toward (and acceptable to gate features behind), or is there a currently-available alternative API or plugin that provides equivalent functionality? This affects the version floor in `docs/php-wordpress-standard.md` and CI matrix configuration.
+
+---
+
+### WF-5: Secure Custom Fields — which plugin?
+
+The problem statement specifies "Secure Custom Fields not ACF." This appears to refer to the fork of Advanced Custom Fields maintained after the WP Engine / Automattic dispute, now published as "Secure Custom Fields" in the WordPress plugin directory.
+
+**Question:** Is this correct? If so, should `docs/php-wordpress-standard.md` name "Secure Custom Fields" explicitly as the required meta-fields plugin, and should ACF be listed as a forbidden dependency?
+
+---
+
+### WF-6: Ubuntu 22 → 24 and PHP 8.2 → 8.3 migration timelines
+
+The problem statement flags both migrations as imminent ("will come quick"). The CI matrix in workflows currently targets a single runtime.
+
+**Question:** Should CI workflows immediately run dual-matrix (Ubuntu 22 + 24, PHP 8.2 + 8.3) now, or should the upgrade happen in a single cutover? Dual-matrix is safer and recommended but doubles CI minutes until the old version is dropped.
+
+---
+
+### WF-7: ADR and tech-specs repos — access for this agent
+
+Both `sparxstar-architecture-decision-record` and `sparxstar-product-technical--specifications` returned 404 — either private or not yet migrated to this org. ADR numbers cannot be cited in standards text until the registry is accessible.
+
+**Question:** When will these repos be accessible (read-only) from this agent's context? Until then, ADR citations in standards documents will use placeholder `ADR-TBD` markers that must be resolved in a follow-up session.
+
+---
+
+### WF-8: Reusable workflow for `first-interaction` — is org-level `.github` repo an option?
+
+GitHub supports a `.github` repository at the organization level (`Starisian-Technologies/.github`) where workflow templates are published for the entire org. Contributors see these in the Actions "new workflow" UI, and they can be enforced via org rulesets.
+
+**Question:** Should a `Starisian-Technologies/.github` repo be created (or does one already exist) to host org-level workflow templates? If yes, the `first-interaction.yml` template could live there and be auto-suggested to every new repo in the org — a stronger DRY posture than copying from this repo manually.

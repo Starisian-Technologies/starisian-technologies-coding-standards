@@ -1,0 +1,38 @@
+# ADR Conformance Receiver — TEMPLATE for consuming repos
+#
+# Copy this file to .github/workflows/adr-conformance-receiver.yml in each
+# consuming repo. This is the ONLY file you add to that repo for ADR conformance.
+# All logic lives in the reusable workflow in the standards repo (DRY).
+#
+# What this does:
+#   - Listens for the adr-registry-changed dispatch event sent by the standards repo
+#     whenever a standards file changes on its main branch.
+#   - Calls the reusable conformance workflow (all logic lives there).
+#
+# Requirements:
+#   - The standards repo must have STANDARDS_DISPATCH_TOKEN and ADR_CONSUMER_REPOS
+#     secrets configured and this repo's slug included in the consumer list.
+#     See standards repo QUESTIONS.md WF-1 and WF-2.
+#   - No secrets required in THIS repo for the receiver to run.
+#
+# Maintenance:
+#   - Do NOT add logic to this file. If conformance checks need to change,
+#     update the reusable workflow in the standards repo.
+#   - The @main pin below means you always get the latest conformance logic.
+#     Pin to a tag (e.g. @v1) once the standards repo establishes release tags.
+
+name: ADR Conformance Check
+
+on:
+  repository_dispatch:
+    types: [adr-registry-changed]
+
+jobs:
+  conformance:
+    name: Check ADR registry conformance
+    uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/adr-conformance.yml@main
+    with:
+      change_type: ${{ github.event.client_payload.change_type }}
+      changed_files: ${{ github.event.client_payload.changed_files }}
+      source_sha: ${{ github.event.client_payload.source_sha }}
+      mode: development
