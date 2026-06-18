@@ -1,94 +1,92 @@
 # Agent Instructions — Product Specifications
 
-## Repository structure
+Agent Guide --- Starisian Technologies Coding Standards
+=====================================================
 
+This repository is policy infrastructure. Its output is enforceable standards, tool configs, and reusable workflows that all product repositories implement.
 
-sparxstar-platform-standards/
-  patents                - platform and product patents
-  platform/              ← platform-level governance docs
-  specs/
-    general/             ← cross-cutting specs (not product-specific)
-    IAMC/
-    DVE/
-    IAtlas/
-    Starmus/
+**The one rule above all others:** zero product names, repo names, concept names, or anything trademarkable in this repo. If a rule only makes sense with a product name attached, it belongs in that product's repo, not here. See `docs/standards-catalog.md`.
 
+Repository role
+---------------
 
-## Rules for where things go:
+This is the **HOW** for the organization: language-agnostic principles, per-language implementation rules, enforcement configs, reusable workflows, and the enforcement matrix.
 
-- **`platform/`** — governs the whole platform regardless of product.
-  The governance architecture, the spec template, the naming convention.
-  Not ADRs (those are in the registry). Not coding standards (those are
-  in the coding-standards repo).
-- **`specs/general/`** — cross-cutting specs that apply to multiple
-  groups but aren't governance. Design tokens, font stack, consent
-  model, wire-key convention.
-- **`specs/{Group}/`** — one file per product following the template in
-  `platform/product-spec-document-structure.md`. Plus one group
-  architecture doc per group.
-- **Group folders match the contracts repo:** IAMC, DVE, IAtlas, Starmus.
-  Same names, same grouping. An agent that knows its group navigates
-  both repos the same way.
+The **WHY / WHAT** (architecture decisions, product specs) lives elsewhere --- in the ADR registry and the product-specs repo. This repo cites them by number, never restates.
 
-## Document rules
+Canonical documents
+-------------------
 
-- **One file per product. No exceptions.** No supplementary docs, no
-  companion files, no "part 2." Everything about one product lives in
-  one spec file.
-- **Every spec follows the template** in
-  `platform/product-spec-document-structure.md`. Twelve mandatory
-  sections, same order, every time.
-- **Version in the document, not the filename.** The file is always
-  `helios-spec.md`. Git history tracks versions.
-- **Cross-product docs** (suite architecture, identity model) also get
-  one file each, named `{system-name}-architecture.md`.
+-   `docs/standards-catalog.md` --- master catalog, read this first
+-   `docs/standards-handbook.md` --- global principles
+-   `docs/*-standard.md` --- per-language standards
+-   `docs/enforcement-matrix.md` --- detailed enforcement mapping
+-   `CI-Enforcement-Matrix.md` --- summary matrix
+-   `.github/workflows/` --- reusable enforcement workflows
 
-## What agents may do
+What you may do
+---------------
 
-- Draft new specs for owner review, following the template
-- Update existing specs to reflect new ADR decisions
-- Propose spec amendments when code in product repos reveals a gap
-- Move cross-product specs here from product repos
-- Add seam definitions between products
-- Add files to `specs/general/` for cross-cutting specs
+-   Draft new standards citing ADR sources
+-   Draft reusable workflows enforcing existing standards
+-   Update tool configs to match updated standards
+-   Update the enforcement matrix for new workflows
+-   Update the catalog when standards are added
+-   Fix inconsistencies between prose and configs
 
-## What agents must NOT do
+What you must NOT do
+--------------------
 
-- Make decisions. Specs describe what was decided — they do not decide.
-  If a spec requires a new decision, flag it as needing an ADR. Do not
-  write the decision into the spec.
-- Invent features. If no decision or owner direction exists for a
-  feature, do not spec it. "No spec exists for X" is a hard stop — X
-  becomes an open question, never a drafted rule.
-- Create multiple files for one product. One file per product. If you
-  feel the need for a second file, the first file is incomplete —
-  add to it.
-- Put product-specific content in `specs/general/`. General specs apply
-  across groups.
-- Put platform governance in `specs/`. Governance lives in `platform/`.
-- Edit governance snapshot files under `.github/instructions/governance/`.
-  These are auto-synced and read-only.
-- Publish client-specific content. Specs describe platform capabilities.
-  Client deployments are configured, not specced.
+-   **Invent standards without an ADR source.** No ADR = no standard. File an open question instead.
+-   **Add product names anywhere.** Not in filenames, not in prose, not in code comments, not in examples.
+-   **Edit governance snapshot files** under `.github/instructions/governance/`. Auto-synced, read-only.
+-   **Mark a matrix row ENFORCED without a workflow.** Honesty rule: if no workflow checks it, the status is SPECIFIED.
+-   **Create decision records.** This repo has no ADRs. Decisions live in the ADR registry.
 
-## The rule for Claude sessions
+ADR cross-reference discipline
+------------------------------
 
-When you are drafting a spec and reach a question that has no answer in
-the governance reference or in the owner's direction:
+Cite ADR-NNN, INV-NNN, OQ-NNN by number in standards text and commit messages. Never paraphrase.
 
-STOP. State the question. Mark it as needing an owner decision. Do not
-draft a rule to fill the gap. Do not ask the owner to ratify something
-you invented. Wait.
+Before editing standards text:
 
-This is the single most important instruction for this repo. Every time
-an agent drafts past an unasked question, the downstream sessions build
-against fiction. The cost of stopping is one message. The cost of
-continuing is a retraction cascade across every repo that read the spec.
+1.  Contradicts an INV? → Block, cite number.
+2.  Assumes an OPEN OQ is resolved? → Block, cite OQ.
+3.  Duplicates an ADR/INV statement? → Replace with citation.
+4.  Names a product? → Replace with generic concept.
 
-## Governance reference
+If the ADR registry is inaccessible, do not fabricate numbers. Ask.
 
-Read `.github/instructions/governance/` for current ADR decisions,
-invariants, and open questions. These are the rules your specs must
-satisfy. Do not assume rules that are not in the governance reference.
+Enforcement-first authoring
+---------------------------
 
-see also [Engingeering Standards](https://github.com/Starisian-Technologies/starisian-technologies-coding-standards/blob/main/ENGINEERING-STANDARDS.md) and the [Starisian Technologies Constitution](https://github.com/Starisian-Technologies/starisian-technologies-coding-standards/blob/main/THE-STARISIAN-TECHNOLOGIES-CONSTITUTION.md).
+For each new or changed rule, maintain:
+
+1.  Rule statement
+2.  Enforcement status (ENFORCED / SPECIFIED / WARN)
+3.  Tooling path (lint / static analysis / test / build gate)
+4.  CI stage placement
+
+If enforcement is not yet automated, mark SPECIFIED. Do not weaken the requirement language.
+
+Content quality rules
+---------------------
+
+-   Standards are measurable and enforceable
+-   Global principles are language-agnostic
+-   Stack-specific constraints only where justified
+-   Normative language: MUST, MUST NOT, REQUIRED, FORBIDDEN
+-   Separate rules from examples
+-   Security and privacy constraints are explicit
+
+Coverage domains
+----------------
+
+Maintain explicit standards for: PHP, WordPress, JavaScript, React, Node, CSS, SQL, PostgreSQL, Neo4j, XML, JSON, Laravel, Vite.
+
+When a stack lacks a dedicated standard, update the handbook and matrices to capture rules and enforcement status.
+
+Governance reference
+--------------------
+
+Read `.github/instructions/governance/` for current decisions, invariants, and open questions. These are the rules your standards enforce. Do not assume rules not in the governance reference.
