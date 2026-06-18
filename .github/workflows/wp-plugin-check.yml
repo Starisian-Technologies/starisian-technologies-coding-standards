@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: WordPress Plugin Check
-        uses: wordpress/plugin-check-action@v1
+        uses: wordpress/plugin-check-action@98a1788320d0add90df2d8183934ecccbc4e05d2 # v1
         with:
           categories: ${{ inputs.categories }}
           exclude-directories: ${{ inputs.exclude-directories }}
