@@ -236,16 +236,19 @@ If not explicitly set, derive `STAR_PLUGIN_NAME` from the directory name: `preg_
 
 * Define fixtures for 2G/3G throttling; include UC/old‑Android smoke tests.
 
-**WordPress Plugin Check (Required):** All WordPress plugins MUST run the [WordPress Plugin Check GitHub Action](https://github.com/marketplace/actions/wordpress-plugin-check) (`wordpress/plugin-check-action`) in CI. This action validates plugins against the WordPress plugin review team's standards and must pass before merge. Add to `.github/workflows/`:
+**WordPress Plugin Check (Required):** All WordPress plugins MUST run the WordPress Plugin Check in CI via the reusable workflow in the coding-standards repo. This checks for performance, accessibility, security, and plugin directory compliance. Plugin Check failures block merge in `development` and `production` modes.
+
+Add to your plugin repo's `.github/workflows/plugin-check.yml`:
 
 ```yaml
-- name: WordPress Plugin Check
-  uses: wordpress/plugin-check-action@v1
-  with:
-    path: '.'
+name: WordPress Plugin Check
+on: [push, pull_request]
+jobs:
+  plugin-check:
+    uses: starisian-technologies/starisian-technologies-coding-standards/.github/workflows/wp-plugin-check.yml@main
 ```
 
-Plugin Check failures block merge in `development` and `production` modes.
+Override categories or excluded directories as needed via `with:` inputs (`categories`, `exclude-directories`). Enforcement rule: **WP-001** in the [enforcement matrix](../../docs/enforcement-matrix.md).
 
 ---
 

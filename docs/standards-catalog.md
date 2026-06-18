@@ -41,7 +41,7 @@ These are not documents; they are constraints every domain standard must satisfy
 | 12 | Security | `SECURITY.md` + sniffs | custom sniffs/rules, dependency audit in CI |
 | 13 | Testing | missing | coverage thresholds, test-tier definitions |
 | 14 | Git / repo & workflow hygiene | missing | Actions on PR metadata |
-| 15 | Package management | active (first complete) | pnpm enforcement workflow |
+| 15 | Package management | active (first complete) | pnpm enforcement workflow (`pnpm-enforcement.yml`); WordPress Plugin Check workflow (`wp-plugin-check.yml`) |
 | 16 | Internationalization basics | missing | No hardcoded strings, UTF-8, BCP-47, ICU format |
 
 ---

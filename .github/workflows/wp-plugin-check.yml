@@ -1,0 +1,25 @@
+name: WordPress Plugin Check
+
+on:
+  workflow_call:
+    inputs:
+      categories:
+        description: "Check categories to run (performance, accessibility, plugin_repo, security)"
+        type: string
+        default: "performance,accessibility,security"
+      exclude-directories:
+        description: "Comma-separated list of directories to exclude from checks"
+        type: string
+        default: "vendor,node_modules"
+
+jobs:
+  plugin-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: WordPress Plugin Check
+        uses: wordpress/plugin-check-action@v1
+        with:
+          categories: ${{ inputs.categories }}
+          exclude-directories: ${{ inputs.exclude-directories }}

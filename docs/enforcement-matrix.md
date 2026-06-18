@@ -86,6 +86,7 @@ This document maps every enforceable rule in the Starisian Technologies standard
 | `SELECT *` in any query | ESLint (custom rule) | Lint | (W) | (B) | (B) |
 | Async route handler without error boundary | ESLint (custom rule) | Lint | (W) | (B) | (B) |
 | `console.log` in production code | ESLint `no-console` | Lint | (W) | (B) | (B) |
+| **WP-001** WordPress Plugin Check fails (performance, accessibility, security) | `.github/workflows/wp-plugin-check.yml` | CI | (W) | (B) | (B) |
 | Package manager other than `pnpm` invoked (ADR-017) | `.github/workflows/pnpm-enforcement.yml` | CI | (W) | (B) | (B) |
 | `package-lock.json` or `yarn.lock` present (ADR-017) | `.github/workflows/pnpm-enforcement.yml` | CI | (W) | (B) | (B) |
 | `package.json` missing `packageManager: pnpm@...` (ADR-017) | `.github/workflows/pnpm-enforcement.yml` | CI | (W) | (B) | (B) |
