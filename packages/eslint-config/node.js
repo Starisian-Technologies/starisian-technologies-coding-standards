@@ -25,7 +25,7 @@ export default [
       // Force explicit env var module pattern (node-standard §3).
       'n/no-process-env': 'warn',
 
-      // Disallow direct child_process.exec with user input (NODE-003-adjacent).
+      // Prevent blocking the event loop with synchronous I/O APIs.
       'n/no-sync': ['warn', { allowAtRootLevel: true }],
     },
   },
