@@ -92,7 +92,10 @@ jobs:
 
 ```yaml
 name: Platform Standards
-on: [pull_request, push]
+on:
+  pull_request:
+  push:
+    branches: [main]
 jobs:
   pnpm:
     uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/pnpm-enforcement.yml@main
