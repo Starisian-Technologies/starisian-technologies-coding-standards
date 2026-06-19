@@ -13,11 +13,14 @@
 # project-specific and MUST be set in the consumer's phpstan.neon.
 # Consumers MAY raise `level` but MUST NOT drop below 5.
 
-# Relative path is resolved from THIS file's directory. When installed at
-# vendor/starisian-technologies/coding-standards/phpstan.neon, the consumer's
-# phpstan-wordpress sits at ../../szepeviktor/phpstan-wordpress/extension.neon.
+# Resolve phpstan-wordpress relative to the project root that runs `phpstan`,
+# not relative to this file. %currentWorkingDirectory% makes the include work
+# both when this config is used from this repo's root (vendor/ here) and when
+# a consumer includes it from vendor/starisian-technologies/coding-standards/
+# (vendor/ in the consumer's project). A static relative path would break one
+# context or the other.
 includes:
-    - ../../szepeviktor/phpstan-wordpress/extension.neon
+    - %currentWorkingDirectory%/vendor/szepeviktor/phpstan-wordpress/extension.neon
 
 parameters:
     # PHP-005 — PHPStan level 5 minimum.
