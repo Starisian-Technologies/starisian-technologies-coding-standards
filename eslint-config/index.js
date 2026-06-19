@@ -3,6 +3,7 @@
 
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
+import { fileURLToPath } from 'node:url';
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 export default [
@@ -30,7 +31,7 @@ export default [
         // Required for type-aware rules (no-floating-promises, await-thenable).
         // Consuming repos must have a tsconfig.json at their project root.
         projectService: true,
-        tsconfigRootDir: import.meta.dirname,
+        tsconfigRootDir: fileURLToPath(new URL('.', import.meta.url)),
       },
     },
     rules: {

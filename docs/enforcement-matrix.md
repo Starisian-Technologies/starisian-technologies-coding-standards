@@ -124,7 +124,7 @@ This document maps every enforceable rule in the Starisian Technologies standard
 
 ---
 
-# 5a. Documentation Enforcement
+# 6. Documentation Enforcement
 
 | Rule | Tool | Stage | draft | dev | prod |
 | :---- | :---- | :---- | :---- | :---- | :---- |
