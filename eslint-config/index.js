@@ -41,8 +41,9 @@ export default [
       'prefer-const': 'error',
       eqeqeq: ['error', 'always'],
       '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-floating-promises': 'error',
-      '@typescript-eslint/await-thenable': 'error',
+      // Type-aware rules require `parserOptions.project` (or project service) in the consuming repo.
+      '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/await-thenable': 'off',
       // STD: JS-002 — wrap fetch in AbortController with 5s timeout; enforce via custom rule (not yet written)
     },
   },
