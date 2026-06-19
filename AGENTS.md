@@ -1,113 +1,90 @@
-# Starisian Technologies — Standards Repository Agent Guide
+Agent Guide --- Starisian Technologies Coding Standards
+=====================================================
 
-This file guides autonomous agents maintaining standards in this repository.
+This repository is policy infrastructure. Its output is enforceable standards, tool configs, and reusable workflows that all product repositories implement.
 
-**Trademark rule:** zero product names, repo names, concept names, or anything trademarkable lands in this repo. If a rule only makes sense with a product name attached, the rule belongs in that product's repo, not here. See [`docs/standards-catalog.md`](docs/standards-catalog.md).
+**The one rule above all others:** zero product names, repo names, concept names, or anything trademarkable in this repo. If a rule only makes sense with a product name attached, it belongs in that product's repo, not here. See `docs/standards-catalog.md`.
 
-## 1) Repository Role
+Repository role
+---------------
 
-This repository is policy infrastructure. Its output is enforceable standards and enforcement matrices that other repositories implement.
+This is the **HOW** for the organization: language-agnostic principles, per-language implementation rules, enforcement configs, reusable workflows, and the enforcement matrix.
 
-This repo is the **HOW** for the organization: code-agnostic standards, per-language implementation rules, and enforcement matrices. The **WHY / WHAT** (architecture decisions, invariants, open questions, cross-repo schemas, repo boundary review) lives in each product's own decision registry — never here.
+The **WHY / WHAT** (architecture decisions, product specs) lives elsewhere --- in the ADR registry and the product-specs repo. This repo cites them by number, never restates.
 
-Do not turn this repository into product-specific documentation. Do not name products, repos, services, or trademarks. Do not restate ADR text or invariant text; cite by number.
+Canonical documents
+-------------------
 
-## 2) Canonical Document Model
+-   `docs/standards-catalog.md` --- master catalog, read this first
+-   `docs/standards-handbook.md` --- global principles
+-   `docs/*-standard.md` --- per-language standards
+-   `docs/enforcement-matrix.md` --- detailed enforcement mapping
+-   `CI-Enforcement-Matrix.md` --- summary matrix
+-   `.github/workflows/` --- reusable enforcement workflows
 
-- **Core law:** `docs/standards-handbook.md`
-- **Implementation standards:** `docs/php-wordpress-standard.md`, `docs/javascript-react-standard.md`, `docs/node-standard.md`, `docs/css-standard.md`, `docs/media-upload-standard.md`
-- **Enforcement mapping:** `docs/enforcement-matrix.md`, `CI-Enforcement-Matrix.md`
-- **Legacy reference:** `ENGINEERING-STANDARDS.md` at the root.
+What you may do
+---------------
 
-When conflicts appear, move validated content into canonical docs and align references.
+-   Draft new standards citing ADR sources
+-   Draft reusable workflows enforcing existing standards
+-   Update tool configs to match updated standards
+-   Update the enforcement matrix for new workflows
+-   Update the catalog when standards are added
+-   Fix inconsistencies between prose and configs
 
-## 2a) Architecture Decisions Cross-Reference
+What you must NOT do
+--------------------
 
-Each product has its own decision registry holding the append-only record of architecture decisions:
+-   **Invent standards without an ADR source.** No ADR = no standard. File an open question instead.
+-   **Add product names anywhere.** Not in filenames, not in prose, not in code comments, not in examples.
+-   **Edit governance snapshot files** under `.github/instructions/governance/`. Auto-synced, read-only.
+-   **Mark a matrix row ENFORCED without a workflow.** Honesty rule: if no workflow checks it, the status is SPECIFIED.
+-   **Create decision records.** This repo has no ADRs. Decisions live in the ADR registry.
 
-- `decisions/ADR-NNN-*.md` — architecture decision records (append-only; Accepted ADRs are immutable; supersede, never edit).
-- `invariants.md` — falsifiable rules (INV-NNN). Cite numbers; never restate text.
-- `open-questions.md` — OQ-NNN. Block work that depends on an OQ in `OPEN` state.
-- `specs/` — cross-repo table schemas.
-- Role / boundary statements per product.
+ADR cross-reference discipline
+------------------------------
 
-Citation conventions for standards text and commit messages in this repo:
+Cite ADR-NNN, INV-NNN, OQ-NNN by number in standards text and commit messages. Never paraphrase.
 
-```
-# Per ADR-NNN: <decision shorthand>
-# See INV-NNN: <invariant shorthand>
-# Blocked on OQ-NNN — RESOLVED by ADR-MMM
-# Schema per specs/<schema-file>
-```
+Before editing standards text:
 
-Conformance checks before editing standards text:
+1.  Contradicts an INV? → Block, cite number.
+2.  Assumes an OPEN OQ is resolved? → Block, cite OQ.
+3.  Duplicates an ADR/INV statement? → Replace with citation.
+4.  Names a product? → Replace with generic concept.
 
-1. Does the proposed text contradict an INV? → Block; cite the number.
-2. Does the proposed text assume a `OPEN` OQ is resolved? → Block; cite the OQ.
-3. Does the proposed text duplicate an ADR or invariant statement? → Replace with a citation.
-4. Does the proposed text drift from a `specs/` schema? → Flag as spec drift.
-5. Does the proposed text name a product, repo, service, or trademark? → Replace with the generic concept; if no generic concept exists, the rule belongs in the product's repo, not here.
+If the ADR registry is inaccessible, do not fabricate numbers. Ask.
 
-If the relevant decision registry is inaccessible, do not fabricate ADR/INV/OQ numbers from memory or from references inside other repos. Ask for access.
-
-## 3) What Good Changes Look Like
-
-- Keep standards measurable and enforceable.
-- Keep global principles language-agnostic.
-- Add stack-specific constraints only where justified by runtime, security, or tooling.
-- Preserve stable rule IDs and matrix references where possible.
-
-## 4) Required Coverage Domains
-
-Maintain explicit and coherent standards coverage for:
-
-- PHP / WordPress
-- JavaScript / React / Node
-- CSS
-- SQL / PostgreSQL
-- Neo4j
-- XML / JSON
-- Laravel
-- Vite
-
-Coverage can be direct (dedicated section/file) or inherited (global + implementation matrix), but must be explicit and reviewable.
-
-## 5) Content Quality Rules
-
-- Avoid product-level coupling or single-repo assumptions.
-- Use normative language (`MUST`, `MUST NOT`, `REQUIRED`, `FORBIDDEN`) for enforceable rules.
-- Separate architectural requirement from illustrative examples.
-- Keep security and privacy constraints explicit.
-
-## 6) Enforcement-First Authoring
+Enforcement-first authoring
+---------------------------
 
 For each new or changed rule, maintain:
 
-1. Rule statement
-2. Enforcement status (`ENFORCED`, `WARN`, `SPECIFIED`, `REFERENCE`, `RESERVED`)
-3. Tooling path (lint/static/test/build/review gate)
-4. CI stage placement
+1.  Rule statement
+2.  Enforcement status (ENFORCED / SPECIFIED / WARN)
+3.  Tooling path (lint / static analysis / test / build gate)
+4.  CI stage placement
 
-If enforcement is not yet automated, mark it `SPECIFIED` and do not weaken requirement language.
+If enforcement is not yet automated, mark SPECIFIED. Do not weaken the requirement language.
 
-## 7) Security Baselines for Standards Text
+Content quality rules
+---------------------
 
-- Require sanitize -> validate -> escape ordering where applicable.
-- Require parameterized database queries.
-- Require capability checks and fail-closed behavior for governed actions.
-- Prohibit secret leakage in examples and templates.
+-   Standards are measurable and enforceable
+-   Global principles are language-agnostic
+-   Stack-specific constraints only where justified
+-   Normative language: MUST, MUST NOT, REQUIRED, FORBIDDEN
+-   Separate rules from examples
+-   Security and privacy constraints are explicit
 
-## 8) Agent Workflow
+Coverage domains
+----------------
 
-1. Review canonical docs and relevant `.github/instructions/` references.
-2. Propose smallest coherent documentation delta.
-3. Update canonical files first, then index/reference docs.
-4. Verify cross-file consistency (scope, terminology, status labels, rule IDs).
-5. Preserve code-agnostic framing unless stack specificity is required.
+Maintain explicit standards for: PHP, WordPress, JavaScript, React, Node, CSS, SQL, PostgreSQL, Neo4j, XML, JSON, Laravel, Vite.
 
-## 9) Do Not Do
+When a stack lacks a dedicated standard, update the handbook and matrices to capture rules and enforcement status.
 
-- Do not introduce contradictory wording between handbook and matrices.
-- Do not remove constraints from canonical docs without updating enforcement status and rationale.
-- Do not add organization-private secrets, credentials, or confidential values.
-- Do not downgrade non-negotiable safety or governance principles.
+Governance reference
+--------------------
+
+Read `.github/instructions/governance/` for current decisions, invariants, and open questions. These are the rules your standards enforce. Do not assume rules not in the governance reference.

@@ -1,80 +1,77 @@
-# Starisian Technologies — Copilot Instructions
+Starisian Technologies --- Copilot Instructions
+=============================================
 
 This repository defines coding standards. Treat this repo as the source of policy, not product implementation.
 
-## Mission
+Reference repositories (read via MCP)
+-------------------------------------
 
-- Keep standards enforceable, testable, and technology-agnostic by default.
-- Encode stack-specific rules only where implementation constraints demand it.
-- Preserve consistency between `docs/`, root reference files, and agent guidance.
+Before reviewing any PR in this repo, read these two internal repos:
 
-## Authoritative Sources
+-   **ADR Registry:** `Starisian-Technologies/sparxstar-architecture-decision-record` --- decisions, invariants, open questions. Every standard must trace to a decision here. If a standard has no ADR source, flag it.
+-   **Product Specs:** `Starisian-Technologies/sparxstar-product-technical--specifications` --- what each product does. Standards must not contradict how products are specced. If a standard conflicts with a spec, flag both.
+-   **This repo:** `Starisian-Technologies/starisian-technologies-coding-standards` --- you are here. Standards, configs, workflows, matrices.
 
-1. `docs/standards-handbook.md` (global law — the HOW)
-2. `docs/*-standard.md` (implementation standards)
-3. `docs/enforcement-matrix.md` and `CI-Enforcement-Matrix.md` (enforcement mapping)
-4. Each product's own decision registry (the WHY / WHAT — ADRs, invariants, open questions, cross-repo specs)
+Mission
+-------
 
-Legacy material at the root (`ENGINEERING-STANDARDS.md`) is an input reference; it is not final authority unless merged into the files above.
+-   Keep standards enforceable, testable, and technology-agnostic by default.
+-   Encode stack-specific rules only where implementation constraints demand it.
+-   Preserve consistency between `docs/`, root reference files, and agent guidance.
 
-## Decisions Cross-Reference Discipline
+Authoritative sources (within this repo)
+----------------------------------------
 
-- Cite ADR-NNN, INV-NNN, OQ-NNN by number in standards text and commit messages. Never paraphrase or restate decision/invariant text.
-- Do not write rules that contradict an invariant or assume an `OPEN` open question is resolved.
-- If you cannot read the relevant product's decision registry, do not fabricate numbers from memory — request access.
+1.  `docs/standards-catalog.md` --- master catalog, read this first
+2.  `docs/standards-handbook.md` --- global principles
+3.  `docs/*-standard.md` --- per-language standards
+4.  `docs/enforcement-matrix.md` and `CI-Enforcement-Matrix.md` --- enforcement mapping
 
-## Trademark Discipline
+Legacy material at the root (`ENGINEERING-STANDARDS.md`) is reference only; not final authority unless merged into the canonical docs.
 
-- This is the **organization-wide** standards repo. No product names, repo names, service names, or trademarks appear here.
-- If a rule only makes sense with a product name attached, the rule belongs in that product's repo, not here.
-- Refer to capabilities by their generic role: "the authority layer", "the auth SDK", "the audio capture SDK", "the runtime layer".
+Review checklist
+----------------
 
-## Non-Negotiable Engineering Rules
+On every PR, check:
 
-- If a rule cannot be enforced or verified, it is incomplete.
-- Sanitize -> Validate -> Escape (in that order).
-- No silent failure.
-- Bounded execution and explicit limits are mandatory.
-- Idempotency is required for retriable writes.
-- Platform abstractions are required; do not hardwire provider-specific behavior.
-- Prefer fail-closed behavior for authority, trust, and safety decisions.
+1.  **ADR traceability.** Does every standard cite its source ADR/INV? A standard with no source has no authority --- flag it.
+2.  **ADR compliance.** Read the ADR registry via MCP. Does the standard contradict any decision or invariant? Flag with the number.
+3.  **OQ discipline.** Does the standard assume an OPEN OQ is resolved? Flag with the OQ number.
+4.  **Spec consistency.** Read the product specs via MCP. Does the standard conflict with how a product is specced? Flag both.
+5.  **Matrix honesty.** Is a row marked ENFORCED without a workflow? Flag --- status should be SPECIFIED.
+6.  **Trademark discipline.** Any product name, repo name, service name, or trademark? Flag --- this is the org-wide repo, zero product names.
+7.  **Governance snapshots.** Is the PR editing a file under `.github/instructions/governance/`? Flag --- auto-synced, read-only.
 
-## Multisite and Platform Constraints
+Trademark discipline
+--------------------
 
-- Assume WordPress multisite from the start.
-- Use `$wpdb->prefix`; never hardcode `wp_`.
-- Distinguish site options from network options.
-- Require capability checks for governed actions.
+Zero product names. Refer to capabilities by generic role: "the authority layer", "the auth SDK", "the audio capture SDK", "the runtime layer". If a rule only makes sense with a product name, the rule belongs in that product's repo.
 
-## Stack-Specific Coverage Baseline
+Non-negotiable engineering rules
+--------------------------------
 
-All maintenance must keep standards current for:
+-   If a rule cannot be enforced or verified, it is incomplete.
+-   Sanitize → Validate → Escape (in that order).
+-   No silent failure.
+-   Bounded execution and explicit limits are mandatory.
+-   Fail-closed for authority, trust, and safety decisions.
+-   Platform abstractions required; no hardwired provider-specific behavior.
 
-- PHP
-- WordPress
-- JavaScript
-- React
-- CSS
-- SQL
-- PostgreSQL
-- Neo4j
-- XML
-- JSON
-- Laravel
-- Vite
+Stack coverage
+--------------
 
-When a stack lacks a dedicated standard file, update the handbook and enforcement matrices to capture explicit rules and enforcement status.
+All maintenance must keep standards current for: PHP, WordPress, JavaScript, React, Node, CSS, SQL, PostgreSQL, Neo4j, XML, JSON, Laravel, Vite.
 
-## Security and Quality Guardrails
+Security guardrails
+-------------------
 
-- Never commit credentials, tokens, or secrets.
-- Require prepared/parameterized database access.
-- Require documented public APIs.
-- Keep CI stages explicit and ordered (lint, static analysis, tests, build, security, review gates).
+-   Never commit credentials, tokens, or secrets.
+-   Require parameterized database access.
+-   Keep CI stages explicit and ordered.
 
-## Documentation Maintenance Rules
+What you must NOT do
+--------------------
 
-- Update cross-references whenever files move or split.
-- Keep wording policy-level, not project-feature specific.
-- Keep examples illustrative; avoid embedding repository-specific implementation assumptions.
-- Record changes in canonical docs first; then align reference summaries.
+-   You are a reviewer, not the authority. Flag and explain. The owner decides.
+-   Do not suggest edits to governance snapshot files.
+-   Do not add product names in suggested changes.
