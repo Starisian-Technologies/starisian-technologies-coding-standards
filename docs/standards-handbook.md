@@ -248,6 +248,8 @@ Machines do not make mistakes by accident. Invalid request behavior is treated a
 
 ## 3.1.1 Client Behaviour on 429 (Slow-Online / 2G)
 
+> **Decision record:** These rules were established in the 2026-06-18 standards review session (slow-online / 2G gap identified). A formal ADR should be filed. Until then, status is SPECIFIED-pending-ADR.
+
 **Client behaviour on 429 (slow-online / 2G):** When a 429 is received on a connection with high latency (>3s round-trip or unreliable connectivity), the client MUST apply the following rules **to write/mutation requests only** (reads may be retried without queuing):
 1. Queue the mutation locally (IndexedDB) — do NOT discard it.
 2. Retry with exponential backoff: first retry after the `Retry-After` header value (if present), or 5s default. `Retry-After` may be delta-seconds (integer) or an HTTP-date; parse accordingly. Double on each subsequent attempt, capped at 5 minutes — unless `Retry-After` specifies a longer duration, which MUST be respected regardless of the cap.
@@ -469,7 +471,7 @@ Jobs that exhaust their retry budget must not be silently dropped. They move to 
 | **FAIL** | job silently discarded after max retries without dead-letter entry |
 | :---- | :---- |
 
-> **Dead-letter retention policy:**
+> **Dead-letter retention policy** (Decision record: established 2026-06-18 standards review; pending formal ADR — treat retention periods as SPECIFIED-pending-ADR):
 > - Governance-sensitive dead letters (items that involved an authority-layer call, consent state change, or governed workflow transition) MUST be retained for a minimum of 90 days.
 > - Non-governance dead letters MUST be retained for a minimum of 7 days.
 > - Retention storage MUST be queryable (not just logs).

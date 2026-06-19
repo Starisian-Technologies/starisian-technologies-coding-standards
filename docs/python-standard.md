@@ -3,7 +3,7 @@
 **Version:** 0.1  
 **Status:** SPECIFIED  
 **Scope:** All Python services — primarily services processing audio pipelines and governed async jobs  
-**Python version:** 3.12+ (latest stable with active support)
+**Python version:** 3.12+ (floor; upgrade as new versions enter active support)
 
 ---
 
@@ -86,7 +86,7 @@ def process_audio(path: Path, config: AudioConfig) -> ProcessingResult:
 
 ### 2.2 Dependency Management
 
-- `uv` is the required package manager for Python services (mirrors the pnpm-only policy for Node).
+- `uv` is the required package manager for Python services (mirrors the pnpm-only policy for Node — pending a formal ADR; treat as SPECIFIED until the decision record is filed).
 - `uv.lock` MUST be committed.
 - No unpinned dependencies in production (`uv lock` with exact versions).
 

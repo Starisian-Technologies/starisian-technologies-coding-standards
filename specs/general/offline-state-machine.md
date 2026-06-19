@@ -3,7 +3,8 @@
 **Version:** 0.1  
 **Status:** SPECIFIED  
 **Scope:** All client-side implementations (JavaScript/React applications, WordPress plugins, browser-based games, text editors)  
-**Authority:** This is a specification, not a coding standard. Implementation decisions must conform to this spec.
+**Authority:** This is a specification, not a coding standard. Implementation decisions must conform to this spec.  
+**Decision record:** The thresholds and queue limits in this spec (latency: 3s, IndexedDB cap: 20 MB, retry limit: 3) were established in the 2026-06-18 standards review session. A formal ADR should be filed to make these traceable. Until then, treat all quantitative values as SPECIFIED-pending-ADR.
 
 ---
 

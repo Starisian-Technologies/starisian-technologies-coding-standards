@@ -4,22 +4,27 @@ on:
   workflow_call:
     inputs:
       categories:
-        description: "Check categories to run (performance, accessibility, plugin_repo, security)"
+        description: "Check categories (performance, accessibility, plugin_repo, security)"
         type: string
-        default: "performance,accessibility,security"
-      exclude-directories:
+        default: "performance,accessibility,plugin_repo,security"
+      exclude_directories:
         description: "Comma-separated list of directories to exclude from checks"
         type: string
         default: "vendor,node_modules"
+      mode:
+        description: "System mode: draft warns, development/production block"
+        type: string
+        default: "production"
 
 jobs:
   plugin-check:
     runs-on: ubuntu-latest
+    continue-on-error: ${{ inputs.mode == 'draft' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: WordPress Plugin Check
         uses: wordpress/plugin-check-action@98a1788320d0add90df2d8183934ecccbc4e05d2 # v1
         with:
           categories: ${{ inputs.categories }}
-          exclude-directories: ${{ inputs.exclude-directories }}
+          exclude-directories: ${{ inputs.exclude_directories }}

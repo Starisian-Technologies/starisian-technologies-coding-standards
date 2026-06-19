@@ -42,4 +42,6 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run Prettier check (no auto-fix)
-        run: pnpm exec prettier --check ${{ inputs.file-pattern }}
+        env:
+          FILE_PATTERN: ${{ inputs.file-pattern }}
+        run: pnpm exec prettier --check "$FILE_PATTERN"

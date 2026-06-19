@@ -41,7 +41,9 @@ These are not documents; they are constraints every domain standard must satisfy
 | 12 | Security | `SECURITY.md` + sniffs | custom sniffs/rules, dependency audit in CI |
 | 13 | Testing | missing | coverage thresholds, test-tier definitions |
 | 14 | Git / repo & workflow hygiene | missing | Actions on PR metadata |
-| 15 | Package management | active (first complete) | pnpm enforcement workflow (`pnpm-enforcement.yml`); WordPress Plugin Check workflow (`wp-plugin-check.yml`); PHP standards workflow (`php-standards.yml`); JS/TS standards workflow (`js-standards.yml`); CSS standards workflow (`css-standards.yml`); formatting workflow (`formatting.yml`); markdownlint workflow (`markdownlint.yml`) |
+| 15 | Package management | active (first complete) | pnpm enforcement workflow (`pnpm-enforcement.yml`) |
+| 15a | WordPress plugin compliance | active | WordPress Plugin Check workflow (`wp-plugin-check.yml`) |
+| 15b | PHP / JS / CSS / formatting / docs CI | active | `php-standards.yml`, `js-standards.yml`, `css-standards.yml`, `formatting.yml`, `markdownlint.yml` |
 | 16 | Internationalization basics | missing | No hardcoded strings, UTF-8, BCP-47, ICU format |
 | 17 | Python | missing | `flake8` / `ruff`, `mypy` strict, `black` formatting |
 

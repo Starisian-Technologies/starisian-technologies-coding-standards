@@ -246,6 +246,8 @@ on: [push, pull_request]
 jobs:
   plugin-check:
     uses: starisian-technologies/starisian-technologies-coding-standards/.github/workflows/wp-plugin-check.yml@main
+    with:
+      mode: production  # draft | development | production
 ```
 
 Override categories or excluded directories as needed via `with:` inputs (`categories`, `exclude-directories`). Enforcement rule: **WP-001** in the [enforcement matrix](enforcement-matrix.md).
