@@ -28,9 +28,12 @@ SLOW_ONLINE → OFFLINE  navigator.onLine false
 OFFLINE → SYNCING      navigator.onLine becomes true
 SYNCING → ONLINE       queue flushed, no conflicts
 SYNCING → CONFLICT     server rejects a queued write (version mismatch or governance rejection)
+SYNCING → ONLINE       queue flushed, no conflicts
+SYNCING → CONFLICT     server rejects a queued write (version mismatch or governance rejection)
 SYNCING → OFFLINE      navigator.onLine becomes false during sync
-SYNCING → SLOW_ONLINE  sync requests experience latency > 3s, or 429 received while latency is elevated
+SYNCING → SLOW_ONLINE  sync requests experience latency > 3s or 429 received
 CONFLICT → ONLINE      conflict resolved (user or system)
+CONFLICT → OFFLINE     navigator.onLine becomes false during conflict resolution
 CONFLICT → OFFLINE     navigator.onLine becomes false during conflict resolution
 ```
 
