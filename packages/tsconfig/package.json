@@ -1,0 +1,20 @@
+{
+  "name": "@starisian-technologies/tsconfig",
+  "version": "0.1.0",
+  "description": "Starisian Technologies organization-wide TypeScript base configurations. Enforces NODE-001 (strict mode).",
+  "license": "UNLICENSED",
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "files": [
+    "base.json",
+    "node.json",
+    "react.json",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/starisian-technologies/starisian-technologies-coding-standards.git",
+    "directory": "packages/tsconfig"
+  }
+}

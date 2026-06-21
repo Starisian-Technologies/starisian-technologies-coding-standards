@@ -27,9 +27,9 @@ These are not documents; they are constraints every domain standard must satisfy
 
 | # | Standard | Status | Enforcing tool(s) |
 |---|---|---|---|
-| 1 | PHP / WordPress | doc exists, config missing | `phpcs.xml.dist`, `phpstan.neon`, custom sniffs |
-| 2 | JavaScript / TypeScript / React | doc exists, config missing | `eslint` config package, `tsconfig` base, custom rules |
-| 3 | Node / server-side JS | doc exists, config missing | shares #2 + node-specific rules |
+| 1 | PHP / WordPress | doc + Layer 1 config shipped (Composer pkg `starisian-technologies/coding-standards`); Layer 3 workflow pending | `ruleset.xml`, `phpstan.neon` shipped; PHP reusable workflow (Step 5) and custom sniffs (Step 7) outstanding |
+| 2 | JavaScript / TypeScript / React | doc + Layer 1 config shipped (npm pkgs `@starisian-technologies/eslint-config`, `@starisian-technologies/tsconfig`); Layer 3 workflow pending | `eslint-config` flat config + `tsconfig` base shipped; JS/TS reusable workflow (Step 5) and custom rules (Step 7) outstanding |
+| 3 | Node / server-side JS | doc + Layer 1 config shipped (`@starisian-technologies/eslint-config/node`, `@starisian-technologies/tsconfig/node.json`); Layer 3 workflow pending | Node-specific lint + tsconfig shipped; reusable workflow (Step 5) and custom rules (Step 7) outstanding |
 | 4 | CSS / styling (code) | doc exists, config missing | `stylelint` config, build-size checks |
 | 5 | Audio / media / upload | doc exists, config missing | ESLint custom rules, runtime validation, upload tests |
 | 6 | Markdown / documentation | missing | `markdownlint` config |
@@ -57,9 +57,9 @@ These are not documents; they are constraints every domain standard must satisfy
 
 ## Build Sequence (by attention saved)
 
-1. **Hygiene:** dedupe instructions folder; relocate product-specific docs to that product's repo; relabel matrix rows honestly.
-2. **Product name scrub:** apply the translation table.
-3. **Layer 1 configs** for the two biggest estates: PHP, then JS/TS.
+1. ✅ **Hygiene:** dedupe instructions folder; relocate product-specific docs to that product's repo; relabel matrix rows honestly. *(landed in PR #10)*
+2. ✅ **Product name scrub:** apply the translation table. *(landed in PR #10)*
+3. ✅ **Layer 1 configs** for the two biggest estates: PHP, then JS/TS. *(this PR — `composer.json`, `ruleset.xml`, `phpstan.neon`, `@starisian-technologies/eslint-config`, `@starisian-technologies/tsconfig`)*
 4. **Missing docs that protect the system itself:** Markdown standard, Git/workflow hygiene standard.
 5. **Workflows** for domains 1–4 + formatting.
 6. **Accessibility + testing standards** — docs then configs then workflows.

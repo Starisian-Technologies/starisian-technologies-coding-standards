@@ -1,0 +1,36 @@
+# Starisian Technologies — organization-wide PHPStan configuration.
+# Enforces docs/php-wordpress-standard.md PHP-005 (level 5 minimum).
+#
+# Consumer extension:
+#   includes:
+#       - vendor/starisian-technologies/coding-standards/phpstan.neon
+#   parameters:
+#       paths:
+#           - src
+#           - tests
+#
+# This shared config deliberately omits paths and excludePaths — those are
+# project-specific and MUST be set in the consumer's phpstan.neon.
+# Consumers MAY raise `level` but MUST NOT drop below 5.
+
+# Resolve phpstan-wordpress relative to the project root that runs `phpstan`,
+# not relative to this file. %currentWorkingDirectory% makes the include work
+# both when this config is used from this repo's root (vendor/ here) and when
+# a consumer includes it from vendor/starisian-technologies/coding-standards/
+# (vendor/ in the consumer's project). A static relative path would break one
+# context or the other.
+includes:
+    - %currentWorkingDirectory%/vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    # PHP-005 — PHPStan level 5 minimum.
+    level: 5
+
+    # `false` means PHPStan treats phpDoc types as *not* automatically
+    # trusted and will infer types more conservatively when contradicted
+    # by code analysis (default is true).
+    treatPhpDocTypesAsCertain: false
+
+    # Surface ignore patterns that never matched a real error — prevents
+    # stale `@phpstan-ignore-next-line` directives from rotting silently.
+    reportUnmatchedIgnoredErrors: true

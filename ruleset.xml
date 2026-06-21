@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<ruleset name="StarisianCodingStandards">
+    <description>
+        Starisian Technologies — organization-wide PHP / WordPress coding standard.
+        Enforces docs/php-wordpress-standard.md and the rules listed in CI-Enforcement-Matrix.md.
+        Discoverable via dealerdirect/phpcodesniffer-composer-installer as standard
+        name "StarisianCodingStandards". Consumers reference it by name
+        with &lt;rule ref="StarisianCodingStandards"/&gt; and MUST set their product
+        prefix with &lt;config name="prefixes" value="myproduct"/&gt; in their own ruleset.
+        This file deliberately omits &lt;file&gt; and &lt;exclude-pattern&gt; directives —
+        consumers define scan targets in their own ruleset.
+    </description>
+
+    <arg value="sp"/>
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg name="parallel" value="8"/>
+
+    <!-- PSR-12 baseline (formatting + structure). -->
+    <rule ref="PSR12"/>
+
+    <!-- PHP-001 — declare(strict_types=1) required at top of every PHP file. -->
+    <rule ref="PSR12.Files.DeclareStrictTypes">
+        <severity>5</severity>
+        <type>error</type>
+    </rule>
+
+    <!-- WordPress baseline (extras + security). -->
+    <rule ref="WordPress-Core"/>
+    <rule ref="WordPress-Extra"/>
+
+    <!-- PHP-003 — All DB queries prepared. -->
+    <rule ref="WordPress.DB.PreparedSQL">
+        <severity>5</severity>
+        <type>error</type>
+    </rule>
+    <rule ref="WordPress.DB.PreparedSQLPlaceholders">
+        <severity>5</severity>
+        <type>error</type>
+    </rule>
+    <rule ref="WordPress.DB.DirectDatabaseQuery">
+        <severity>5</severity>
+        <type>error</type>
+    </rule>
+
+    <!-- PHP-004 — All WordPress globals must be prefixed. Consumer MUST set
+         their product prefix in their own ruleset via:
+         config name="prefixes" value="myproduct" -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <severity>5</severity>
+        <type>error</type>
+    </rule>
+
+    <!-- Security defaults — output escaping and input sanitization. -->
+    <rule ref="WordPress.Security.EscapeOutput">
+        <severity>5</severity>
+        <type>error</type>
+    </rule>
+    <rule ref="WordPress.Security.NonceVerification">
+        <severity>5</severity>
+        <type>error</type>
+    </rule>
+    <rule ref="WordPress.Security.ValidatedSanitizedInput">
+        <severity>5</severity>
+        <type>error</type>
+    </rule>
+
+    <!-- Reasonable WordPress relaxations for modern PHP. -->
+    <rule ref="WordPress.Files.FileName">
+        <properties>
+            <property name="strict_class_file_names" value="false"/>
+        </properties>
+    </rule>
+</ruleset>

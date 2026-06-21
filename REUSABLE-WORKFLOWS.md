@@ -52,7 +52,7 @@ Not every repo needs every job. Include only what applies:
 PHP-only repos (no JS) skip the `js`, `css`, and `pnpm` jobs.
 JS-only repos (no PHP) skip the `php` and `wp-plugin-check` jobs.
 
-## Example: PHP WordPress plugin (Helios, Sirus, ESU)
+## Example: PHP WordPress plugin
 
 ```yaml
 name: Platform Standards
@@ -73,7 +73,7 @@ jobs:
     uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/wp-plugin-check.yml@main
 ```
 
-## Example: JS/React app (WordPad, RLC UI)
+## Example: JS/React app
 
 ```yaml
 name: Platform Standards
@@ -94,7 +94,7 @@ jobs:
     uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/formatting.yml@main
 ```
 
-## Example: Node backend (RLC Node Engine)
+## Example: Node backend
 
 ```yaml
 name: Platform Standards
@@ -129,9 +129,9 @@ where you want visibility without blocking.
 
 ## Composer auth for PHP repos
 
-If the PHP workflow needs private packages (Ouroboros, Helios contracts),
-pass the required secrets to the reusable workflow (e.g., using secrets: inherit or explicit secrets) — or ensure the
-reusable workflow accepts auth inputs. The org secrets
+If the PHP workflow needs private packages, pass the required secrets to
+the reusable workflow (e.g., using `secrets: inherit` or explicit secrets)
+— or ensure the reusable workflow accepts auth inputs. The org secrets
 `COMPOSER_RESOLVER_CLIENT_ID` and `COMPOSER_RESOLVER_PRIVATE_KEY` are
 available to all repos.
 

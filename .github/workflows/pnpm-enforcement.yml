@@ -34,20 +34,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Sanitize input.mode through an env var (CodeQL: never interpolate
+      # workflow_call inputs directly into a shell run block).
       - name: Determine block behavior
         id: mode
+        env:
+          INPUT_MODE: ${{ inputs.mode }}
         shell: bash
         run: |
-          case "${{ inputs.mode }}" in
+          set -euo pipefail
+          case "$INPUT_MODE" in
             draft) echo "block=false" >> "$GITHUB_OUTPUT" ;;
             development|production) echo "block=true" >> "$GITHUB_OUTPUT" ;;
             *)
-              echo "::error::Unknown mode '${{ inputs.mode }}' — expected draft | development | production"
+              echo "::error::Unknown mode '$INPUT_MODE' — expected draft | development | production"
               exit 1
               ;;
           esac
 
-      - name: NODE-PKG-001 — no foreign lockfiles
+      - name: NODE-PKG-002 — no foreign lockfiles
+        env:
+          BLOCK_MODE: ${{ steps.mode.outputs.block }}
         shell: bash
         run: |
           set -euo pipefail
@@ -57,7 +64,7 @@ jobs:
           done
           if [ ${#forbidden[@]} -gt 0 ]; then
             msg="ADR-017 (NODE-PKG-002): forbidden lockfile(s) present: ${forbidden[*]}"
-            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+            if [ "$BLOCK_MODE" = "true" ]; then
               echo "::error::$msg"
               exit 1
             else
@@ -67,13 +74,15 @@ jobs:
 
       - name: NODE-PKG-003 — packageManager field is pinned pnpm
         if: hashFiles('package.json') != ''
+        env:
+          BLOCK_MODE: ${{ steps.mode.outputs.block }}
         shell: bash
         run: |
           set -euo pipefail
           pm=$(node -e "try { const p = require('./package.json'); process.stdout.write(p.packageManager || '') } catch (e) { process.stdout.write('') }")
           if [[ "$pm" != pnpm@* ]]; then
             msg="ADR-017 (NODE-PKG-003): package.json missing pinned packageManager (expected 'pnpm@<version>', got '${pm:-<unset>}')"
-            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+            if [ "$BLOCK_MODE" = "true" ]; then
               echo "::error::$msg"
               exit 1
             else
@@ -82,16 +91,21 @@ jobs:
           fi
 
       - name: NODE-PKG-001 — workflows/scripts do not invoke npm or yarn install
+        env:
+          BLOCK_MODE: ${{ steps.mode.outputs.block }}
         shell: bash
         run: |
           set -euo pipefail
-          patterns='(^|[^a-zA-Z_-])(npm[[:space:]]+(install|i|ci)\b|yarn[[:space:]]+(install|add)\b)'
+          # ERE-safe boundary: command tokens must be followed by whitespace or end-of-line
+          # (POSIX ERE does not implement \b — that would match a backspace byte).
+          patterns='(^|[^[:alnum:]_-])(npm[[:space:]]+(install|i|ci)([[:space:]]|$)|yarn[[:space:]]+(install|add)([[:space:]]|$))'
           hits=$(grep -REn --include='*.yml' --include='*.yaml' --include='*.sh' \
-              --include='Dockerfile*' --include='Makefile*' \
-              -e "$patterns" .github scripts Dockerfile* Makefile* 2>/dev/null || true)
+              --include='Dockerfile*' --include='Makefile*' --include='package.json' --include='README*' --include='*.md' \
+              --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=vendor --exclude-dir=dist --exclude-dir=build \
+              -e "$patterns" . 2>/dev/null || true)
           if [ -n "$hits" ]; then
             msg=$'ADR-017 (NODE-PKG-001): non-pnpm package manager invocation found:\n'"$hits"
-            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+            if [ "$BLOCK_MODE" = "true" ]; then
               echo "::error::$msg"
               exit 1
             else
@@ -101,6 +115,8 @@ jobs:
 
       - name: NODE-PKG-004 — pnpm install --frozen-lockfile dry run
         if: hashFiles('package.json') != ''
+        env:
+          BLOCK_MODE: ${{ steps.mode.outputs.block }}
         shell: bash
         run: |
           set -euo pipefail
@@ -108,8 +124,8 @@ jobs:
           if [ -f pnpm-lock.yaml ]; then
             pnpm install --frozen-lockfile
           else
-            msg="ADR-017 (NODE-PKG-002): package.json present but pnpm-lock.yaml missing"
-            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+            msg="ADR-017 (NODE-PKG-004): package.json present but pnpm-lock.yaml missing — --frozen-lockfile requires it"
+            if [ "$BLOCK_MODE" = "true" ]; then
               echo "::error::$msg"
               exit 1
             else

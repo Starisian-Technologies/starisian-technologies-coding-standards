@@ -1,0 +1,15 @@
+{
+  "name": "starisian-technologies-coding-standards-workspace",
+  "version": "0.0.0",
+  "description": "Workspace root for organization-wide JS/TS coding-standards packages. Not publishable.",
+  "private": true,
+  "license": "proprietary",
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "lint": "pnpm -r --if-present run lint",
+    "test": "pnpm -r --if-present run test"
+  }
+}
