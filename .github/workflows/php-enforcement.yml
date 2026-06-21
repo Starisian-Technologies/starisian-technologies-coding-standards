@@ -373,3 +373,19 @@ if not plugins.get('dealerdirect/phpcodesniffer-composer-installer'):
               echo "::warning::$msg"
             fi
           fi
+
+      # ── Bucket-3: warn-only gaps (Directive 5 — pending ADR ratification) ──
+
+      - name: PHP-SQL-003 (warn-only) — unbounded $wpdb query without LIMIT
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -Prn \
+            --include='*.php' \
+            --exclude-dir=vendor \
+            '\$wpdb->(get_results|get_col|query)\s*\(' \
+            . 2>/dev/null \
+            | grep -Pv 'LIMIT\s+\d' || true)
+          if [ -n "$hits" ]; then
+            echo "::warning::PHP-SQL-003 (advisory): \$wpdb query without LIMIT — may return unbounded result sets:"$'\n'"$hits"
+          fi

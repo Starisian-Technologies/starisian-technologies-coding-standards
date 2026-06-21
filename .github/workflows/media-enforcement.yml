@@ -267,3 +267,29 @@ PYEOF
               echo "::warning::$msg"
             fi
           fi
+
+      # ── Bucket-3: warn-only gaps (Directive 5 — pending ADR ratification) ──
+
+      - name: MEDIA-CONSTRAINTS-002 (warn-only) — channelCount > 1 in getUserMedia constraints
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -Prn \
+            --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' \
+            --exclude-dir=node_modules --exclude-dir=dist \
+            --exclude='*.test.*' --exclude='*.spec.*' \
+            'channelCount\s*:\s*[2-9]' \
+            . 2>/dev/null || true)
+          [ -n "$hits" ] && echo "::warning::MEDIA-CONSTRAINTS-002 (advisory): channelCount > 1 — mono capture required (sampleRate <= 16 kHz, 1 channel):"$'\n'"$hits" || true
+
+      - name: MEDIA-CONSTRAINTS-003 (warn-only) — bitrate > 32000 in audio constraints
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -Prn \
+            --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' \
+            --exclude-dir=node_modules --exclude-dir=dist \
+            --exclude='*.test.*' --exclude='*.spec.*' \
+            'bitrate\s*[=:]\s*([3-9][2-9]\d{3}|[4-9]\d{4}|[1-9]\d{5,})' \
+            . 2>/dev/null || true)
+          [ -n "$hits" ] && echo "::warning::MEDIA-CONSTRAINTS-003 (advisory): audio bitrate > 32 kbps — use <= 32000:"$'\n'"$hits" || true

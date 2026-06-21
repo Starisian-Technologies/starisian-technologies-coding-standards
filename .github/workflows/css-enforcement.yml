@@ -350,3 +350,56 @@ PYEOF
               echo "::warning::$msg"
             fi
           fi
+
+      # ── Bucket-3: warn-only gaps (Directive 5 — pending ADR ratification) ──
+
+      - name: CSS-PERF-005 (warn-only) — text-shadow on body text
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -Prn \
+            --include='*.css' --include='*.scss' --include='*.less' \
+            --exclude-dir=node_modules --exclude-dir=vendor \
+            'text-shadow\s*:' \
+            . 2>/dev/null || true)
+          [ -n "$hits" ] && echo "::warning::CSS-PERF-005 (advisory): text-shadow found — verify not applied to body/paragraph text:"$'\n'"$hits" || true
+
+      - name: CSS-MAINT-001 (warn-only) — !important outside utility files
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -Prn \
+            --include='*.css' --include='*.scss' --include='*.less' \
+            --exclude-dir=node_modules --exclude-dir=vendor \
+            '!important' \
+            . 2>/dev/null \
+            | grep -Pv 'utilities?\.(css|scss|less)|_utils\.|_helpers?\.' || true)
+          [ -n "$hits" ] && echo "::warning::CSS-MAINT-001 (advisory): !important outside utility files:"$'\n'"$hits" || true
+
+      - name: CSS-PERF-006 (warn-only) — @font-face missing font-display
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=$(grep -Prln \
+            --include='*.css' --include='*.scss' \
+            --exclude-dir=node_modules --exclude-dir=vendor \
+            '@font-face' \
+            . 2>/dev/null || true)
+          if [ -n "$files" ]; then
+            missing=$(echo "$files" | xargs grep -Pl '@font-face' | xargs grep -PL 'font-display\s*:' 2>/dev/null || true)
+            [ -n "$missing" ] && echo "::warning::CSS-PERF-006 (advisory): @font-face without font-display in:"$'\n'"$missing" || true
+          fi
+
+      - name: CSS-A11Y-002 (warn-only) — @keyframes without prefers-reduced-motion
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=$(grep -Prln \
+            --include='*.css' --include='*.scss' \
+            --exclude-dir=node_modules --exclude-dir=vendor \
+            '@keyframes' \
+            . 2>/dev/null || true)
+          if [ -n "$files" ]; then
+            missing=$(echo "$files" | xargs grep -PL 'prefers-reduced-motion' 2>/dev/null || true)
+            [ -n "$missing" ] && echo "::warning::CSS-A11Y-002 (advisory): @keyframes without prefers-reduced-motion guard in:"$'\n'"$missing" || true
+          fi
