@@ -100,7 +100,7 @@ jobs:
           check_pattern() {
             local label="$1" pattern="$2"
             local hits
-            hits=$(grep -rEn \
+            hits=$(grep -Prn \
               --include='*.css' --include='*.scss' --include='*.less' \
               --exclude-dir=node_modules --exclude-dir=vendor \
               "$pattern" . 2>/dev/null || true)
@@ -130,7 +130,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          hits=$(grep -rEn \
+          hits=$(grep -Prn \
             --include='*.css' --include='*.scss' --include='*.less' \
             --exclude-dir=node_modules --exclude-dir=vendor \
             '^[[:space:]]*#[a-zA-Z][a-zA-Z0-9_-]*[[:space:]]*\{|,[[:space:]]*#[a-zA-Z]' \
@@ -150,7 +150,7 @@ jobs:
           set -euo pipefail
           # Flag hex colors used in property values outside :root / token definition files.
           # This is a heuristic — it flags probable violations for human review.
-          hits=$(grep -rEn \
+          hits=$(grep -Prn \
             --include='*.css' --include='*.scss' \
             --exclude-dir=node_modules --exclude-dir=vendor \
             '(color|background|border|fill|stroke)\s*:\s*#[0-9a-fA-F]{3,8}' \
@@ -172,7 +172,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          hits=$(grep -rEn \
+          hits=$(grep -Prn \
             --include='*.css' --include='*.scss' --include='*.less' \
             --exclude-dir=node_modules --exclude-dir=vendor \
             'font-size\s*:\s*[0-9]+px' \
@@ -190,7 +190,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          hits=$(grep -rEn \
+          hits=$(grep -Prn \
             --include='*.css' --include='*.scss' --include='*.less' \
             --exclude-dir=node_modules --exclude-dir=vendor \
             'outline\s*:\s*(none|0)' \
@@ -235,17 +235,17 @@ jobs:
             exit 0
           fi
 
-          exceeded=()
+          total_bytes=0
           while IFS= read -r -d '' file; do
             size=$(gzip -c "$file" | wc -c)
-            if [ "$size" -gt "$limit_bytes" ]; then
-              size_kb=$(( size / 1024 ))
-              exceeded+=("$file (${size_kb} KB gzipped, limit ${limit_kb} KB)")
-            fi
+            total_bytes=$(( total_bytes + size ))
           done < <(find "$css_dir" -name '*.css' -not -name '*.map' -print0)
 
-          if [ ${#exceeded[@]:-0} -gt 0 ]; then
-            msg="CSS-BUNDLE-001: CSS bundle(s) exceed ${limit_kb} KB gzipped limit: ${exceeded[*]}"
+          total_kb=$(( total_bytes / 1024 ))
+          echo "::notice::CSS-BUNDLE-001: total CSS bundle size: ${total_kb} KB gzipped (limit ${limit_kb} KB)"
+
+          if [ "$total_bytes" -gt "$limit_bytes" ]; then
+            msg="CSS-BUNDLE-001: total CSS bundle ${total_kb} KB gzipped exceeds ${limit_kb} KB limit"
             if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
               echo "::error::$msg"; exit 1
             else

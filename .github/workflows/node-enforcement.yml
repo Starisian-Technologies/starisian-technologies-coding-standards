@@ -124,7 +124,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          hits=$(grep -rEn \
+          hits=$(grep -Prn \
             --include='*.ts' --include='*.js' --include='*.mjs' \
             --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
             '\beval\s*\(|new\s+Function\s*\(' \
@@ -142,7 +142,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          hits=$(grep -rEn \
+          hits=$(grep -Prn \
             --include='*.ts' --include='*.js' \
             --exclude-dir=node_modules --exclude-dir=dist \
             '\.(query|raw)\s*\(`[^`]*\$\{' \
@@ -160,7 +160,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          hits=$(grep -rEin \
+          hits=$(grep -Prin \
             --include='*.ts' --include='*.js' \
             --exclude-dir=node_modules --exclude-dir=dist \
             'SELECT\s+\*\s+FROM' \
@@ -202,7 +202,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          hits=$(grep -rEn \
+          hits=$(grep -Prn \
             --include='*.ts' --include='*.js' \
             --exclude-dir=node_modules --exclude-dir=dist \
             --exclude='*.test.*' --exclude='*.spec.*' \

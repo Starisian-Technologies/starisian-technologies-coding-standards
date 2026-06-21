@@ -51,7 +51,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          hits=$(grep -rEn \
+          hits=$(grep -Prn \
             --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' \
             --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=vendor \
             --exclude='*.test.*' --exclude='*.spec.*' \
@@ -72,7 +72,7 @@ jobs:
           set -euo pipefail
           # Grep for getUserMedia calls and check for missing or over-limit sampleRate.
           # Heuristic: flag files that call getUserMedia without an explicit sampleRate constraint.
-          files_without_sr=$(grep -rEln \
+          files_without_sr=$(grep -Prln \
             --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' \
             --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=vendor \
             --exclude='*.test.*' --exclude='*.spec.*' \
@@ -95,7 +95,7 @@ jobs:
           set -euo pipefail
           # Flag getUserMedia called directly at module scope or in load/DOMContentLoaded without user gesture guard.
           # This is a heuristic static check — full enforcement requires E2E tests.
-          hits=$(grep -rEn \
+          hits=$(grep -Prn \
             --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' \
             --exclude-dir=node_modules --exclude-dir=dist \
             --exclude='*.test.*' --exclude='*.spec.*' \
@@ -115,7 +115,7 @@ jobs:
         run: |
           set -euo pipefail
           # Flag fetch/axios POSTs with FormData that are not TUS PATCH requests.
-          hits=$(grep -rEn \
+          hits=$(grep -Prn \
             --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' \
             --exclude-dir=node_modules --exclude-dir=dist \
             --exclude='*.test.*' --exclude='*.spec.*' \
@@ -135,7 +135,7 @@ jobs:
         run: |
           set -euo pipefail
           # Flag chunk size constants > 524288 bytes (512 KB).
-          hits=$(grep -rEn \
+          hits=$(grep -Prn \
             --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' \
             --exclude-dir=node_modules --exclude-dir=dist \
             'chunkSize\s*[=:]\s*[6-9][0-9]{5,}|chunkSize\s*[=:]\s*[1-9][0-9]{6,}' \
@@ -154,7 +154,7 @@ jobs:
         run: |
           set -euo pipefail
           # Flag FFmpeg invocations that interpolate request/user variables into argument strings.
-          hits=$(grep -rEn \
+          hits=$(grep -Prn \
             --include='*.ts' --include='*.js' --include='*.php' \
             --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=vendor \
             --exclude='*.test.*' --exclude='*.spec.*' \
@@ -173,7 +173,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          hits=$(grep -rEin \
+          hits=$(grep -Prin \
             --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' --include='*.php' \
             --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=vendor \
             --exclude='*.test.*' --exclude='*.spec.*' \

@@ -152,17 +152,17 @@ jobs:
             exit 0
           fi
 
-          exceeded=()
+          total_bytes=0
           while IFS= read -r -d '' file; do
             size=$(gzip -c "$file" | wc -c)
-            if [ "$size" -gt "$limit_bytes" ]; then
-              size_kb=$(( size / 1024 ))
-              exceeded+=("$file (${size_kb} KB gzipped, limit ${limit_kb} KB)")
-            fi
+            total_bytes=$(( total_bytes + size ))
           done < <(find "$js_dir" -name '*.js' -not -name '*.map' -print0)
 
-          if [ ${#exceeded[@]:-0} -gt 0 ]; then
-            msg="JS-BUNDLE-001: bundle(s) exceed ${limit_kb} KB gzipped limit: ${exceeded[*]}"
+          total_kb=$(( total_bytes / 1024 ))
+          echo "::notice::JS-BUNDLE-001: total JS bundle size: ${total_kb} KB gzipped (limit ${limit_kb} KB)"
+
+          if [ "$total_bytes" -gt "$limit_bytes" ]; then
+            msg="JS-BUNDLE-001: total JS bundle ${total_kb} KB gzipped exceeds ${limit_kb} KB limit"
             if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
               echo "::error::$msg"
               exit 1

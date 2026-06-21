@@ -129,10 +129,18 @@ jobs:
             php_file=$(find . -name '*.php' -not -path './vendor/*' -not -path './node_modules/*' | head -1)
             if [ -n "$php_file" ]; then
               scan_dir=$(dirname "$php_file")
+              phpcs_exit=0
               phpcs --standard=WordPress --extensions=php \
                 --ignore=vendor/,node_modules/ \
-                "$scan_dir" \
-                2>&1 | tee /tmp/phpcs-out.txt || true
+                "$scan_dir" 2>&1 | tee /tmp/phpcs-out.txt || phpcs_exit=$?
+              if [ "$phpcs_exit" -ne 0 ]; then
+                if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+                  echo "::error::PHP-LINT-001: PHPCS violations found"
+                  exit 1
+                else
+                  echo "::warning::PHP-LINT-001: PHPCS violations found (non-blocking in ${{ inputs.mode }} mode)"
+                fi
+              fi
             else
               echo "::notice::PHP-LINT-001: No PHP files found to scan"
             fi
@@ -180,7 +188,7 @@ jobs:
           # Quick grep guard for obvious direct string interpolation into SQL.
           # Full coverage comes from PHPCS VIP sniff above; this catches files
           # that may fall outside the PHPCS ruleset scope.
-          hits=$(grep -rEn \
+          hits=$(grep -Prn \
             --include='*.php' \
             --exclude-dir=vendor \
             --exclude-dir=node_modules \
@@ -200,7 +208,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          hits=$(grep -rEin \
+          hits=$(grep -Prin \
             --include='*.php' \
             --exclude-dir=vendor \
             --exclude-dir=node_modules \
@@ -216,15 +224,17 @@ jobs:
             fi
           fi
 
-      - name: PHP-WP-001 — no hardcoded wp_ table prefix
+      - name: PHP-WP-001 — no hardcoded wp_ table prefix in SQL contexts
         shell: bash
         run: |
           set -euo pipefail
-          hits=$(grep -rEn \
+          # Scoped to SQL keywords to avoid false positives on legitimate hook/function
+          # names like 'wp_enqueue_scripts' that also contain the wp_ prefix.
+          hits=$(grep -Prn \
             --include='*.php' \
             --exclude-dir=vendor \
             --exclude-dir=node_modules \
-            "'wp_[a-z]|\"wp_[a-z]" \
+            '(FROM|JOIN|INTO|UPDATE|TABLE)\s+[`'"'"'"]?wp_[a-z]' \
             . 2>/dev/null || true)
           if [ -n "$hits" ]; then
             msg=$'PHP-WP-001: hardcoded wp_ table prefix found — use $wpdb->prefix instead:\n'"$hits"
