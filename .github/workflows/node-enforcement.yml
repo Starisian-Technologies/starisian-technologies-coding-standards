@@ -57,7 +57,7 @@ on:
         # REMOVAL: 2027-01-01 — all callers must migrate to enforcement_mode before this date
         required: false
         type: string
-        default: development
+        default: draft
       node-version:
         description: 'Node.js LTS version to use.'
         required: false
@@ -132,7 +132,7 @@ with open(os.environ["GITHUB_OUTPUT"], "a") as out:
 PYEOF
 
       - name: Warn on deprecated 'mode' input
-        if: inputs.mode != 'development'
+        if: inputs.enforcement_mode == ''
         shell: bash
         run: |
           echo "::warning::DEPRECATED: 'mode' input will be removed 2027-01-01 — migrate to 'enforcement_mode: required | advisory' (STD-TOOLCHAIN-001 §3)"

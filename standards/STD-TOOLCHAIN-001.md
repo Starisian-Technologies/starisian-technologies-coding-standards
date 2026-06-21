@@ -48,7 +48,17 @@ Each consuming repo's `standards.yml` caller has three independent version axes:
 | `profile_version` (e.g. `v1`) | `with:` input | Dependency/config contract |
 | `enforcement_mode` | `with:` input | `required` (fail-closed) or `advisory` |
 
+**Pin strategy:**
+
+| Pin | When to use |
+|-----|-------------|
+| `@v1` | Recommended — tracks latest compatible v1 workflow; receives bugfixes automatically |
+| `@v1.2.0` | Maximum reproducibility — exact immutable release; requires manual updates |
+| `@main` | Never — breaking changes land here first; not for consumers |
+
 Never pin to `@main` in production. Move axes independently.
+
+**Enforcement governance:** Workflows default to `advisory` (warn-only) when no `enforcement_mode` is passed. Consumers must explicitly set `enforcement_mode: required` to get fail-closed behavior. Only ADR-backed rules (§7, §8) can be mandated org-wide as required; proposal-only sections (§3–§6, §9–§10) must run advisory-only until their backing ADRs are ratified.
 
 ---
 

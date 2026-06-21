@@ -154,14 +154,20 @@ the reusable workflow (e.g., using `secrets: inherit` or explicit secrets)
 `COMPOSER_RESOLVER_CLIENT_ID` and `COMPOSER_RESOLVER_PRIVATE_KEY` are
 available to all repos.
 
+## Pin strategy
+
+| Pin | When to use |
+|-----|-------------|
+| `@v1` | Recommended stable pin — tracks latest compatible v1; receives bugfixes automatically |
+| `@v1.2.0` | Maximum reproducibility — exact immutable release; requires manual bumps |
+| `@main` | Never — breaking changes land here first; not for consumers |
+
 ## Rules
 
 - **One `standards.yml` file per repo.** Don't create separate workflow
   files per check.
-- **Always pin to a release tag (e.g., `@v1`).** The coding-standards
-  repo uses semantic versioning; pin to the current major tag so you
-  receive non-breaking updates automatically. Never pin to `@main` in
-  production — breaking changes land on `main` first. See
+- **Always pin to a release tag (`@v1` or `@v1.x.x`).** Never pin to
+  `@main` in production — breaking changes land on `main` first. See
   STD-TOOLCHAIN-001 §3 for the three-axis versioning model.
 - **Don't duplicate checks.** If the reusable workflow checks phpcs,
   don't also run phpcs separately in another workflow. One source of

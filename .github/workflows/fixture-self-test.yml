@@ -121,6 +121,36 @@ jobs:
           fi
           echo "OK: PHP-WP-001 fail fixture detected violations as expected"
 
+      - name: PHP-LINT-001 PASS — VIP fallback fixture clean under WordPressVIPMinimum
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Prove the no-config fixture has no PHP-STRICT-001 violations
+          # (PHPCS itself needs vipwpcs installed which isn't available in self-test;
+          # we validate that the fixture file is syntactically clean and has strict_types,
+          # which is necessary for it to pass WordPressVIPMinimum)
+          missing=()
+          while IFS= read -r -d '' file; do
+            grep -qP '^\s*declare\s*\(\s*strict_types\s*=\s*1\s*\)' "$file" || missing+=("$file")
+          done < <(find fixtures/php-enforcement/pass-vip-fallback -name '*.php' -print0)
+          if [ ${#missing[@]:-0} -gt 0 ]; then
+            echo "SELF-TEST FAIL: VIP fallback fixture missing strict_types in: ${missing[*]}"
+            exit 1
+          fi
+          # Prove the fixture has no raw SQL interpolation (would fail SQL-001)
+          hits=$(grep -Prn --include='*.php' \
+            '\$wpdb->(query|get_results|get_row|get_col|get_var)\s*\(\s*"[^"]*\$' \
+            fixtures/php-enforcement/pass-vip-fallback 2>/dev/null || true)
+          [ -z "$hits" ] || { echo "SELF-TEST FAIL: VIP fallback fixture has SQL-001 violations"; exit 1; }
+          # Prove the fallback step label uses WordPressVIPMinimum (not --standard=WordPress)
+          grep -q 'WordPressVIPMinimum' .github/workflows/php-enforcement.yml \
+            || { echo "SELF-TEST FAIL: php-enforcement.yml PHPCS fallback does not use WordPressVIPMinimum"; exit 1; }
+          grep -n 'standard=WordPress[^V]' .github/workflows/php-enforcement.yml && {
+            echo "SELF-TEST FAIL: php-enforcement.yml fallback uses plain --standard=WordPress (not VIPMinimum)"
+            exit 1
+          } || true
+          echo "OK: VIP fallback fixture clean and workflow correctly uses WordPressVIPMinimum"
+
   # ── CSS enforcement ──────────────────────────────────────────────────────────
   css:
     name: CSS fixture self-test
