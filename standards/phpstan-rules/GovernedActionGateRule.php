@@ -106,28 +106,35 @@ class GovernedActionGateRule implements Rule
 
     private function callsGate(Function_|ClassMethod $node): bool
     {
-        // Walk the function body looking for a call to the gate function
         $stmts = $node->stmts ?? [];
-        return $this->stmtsCallGate($stmts);
+        return $this->nodesContainGateCall($stmts);
     }
 
-    private function stmtsCallGate(array $stmts): bool
+    /**
+     * Recursively walk any Node array looking for a FuncCall to the gate function.
+     * Handles standalone calls, fully-qualified calls, and calls nested inside
+     * other expressions (assignments, ternaries, argument lists, etc.).
+     *
+     * @param array<mixed> $nodes
+     */
+    private function nodesContainGateCall(array $nodes): bool
     {
-        foreach ($stmts as $stmt) {
-            if (!($stmt instanceof Node)) {
+        foreach ($nodes as $node) {
+            if (!($node instanceof Node)) {
                 continue;
             }
-            if ($stmt instanceof Node\Stmt\Expression &&
-                $stmt->expr instanceof Node\Expr\FuncCall &&
-                $stmt->expr->name instanceof Node\Name &&
-                $stmt->expr->name->toString() === self::GATE_FUNCTION
-            ) {
-                return true;
+            if ($node instanceof Node\Expr\FuncCall) {
+                $name = $node->name;
+                if ($name instanceof Node\Name &&
+                    $name->getLast() === self::GATE_FUNCTION
+                ) {
+                    return true;
+                }
             }
-            // Recurse into nested blocks (if/try/etc.)
-            foreach ($stmt->getSubNodeNames() as $subName) {
-                $sub = $stmt->$subName;
-                if (is_array($sub) && $this->stmtsCallGate($sub)) {
+            foreach ($node->getSubNodeNames() as $subName) {
+                $sub = $node->$subName;
+                $items = is_array($sub) ? $sub : [$sub];
+                if ($this->nodesContainGateCall($items)) {
                     return true;
                 }
             }

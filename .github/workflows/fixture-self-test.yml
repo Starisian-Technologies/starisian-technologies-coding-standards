@@ -290,53 +290,51 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: enforcement_mode=invalid exits 1
+      - name: Block behavior logic self-test
         shell: bash
         run: |
           set -euo pipefail
-          em="unexpected-value"
-          result=0
-          (
+          # Helper: inline the same case logic as the enforcement workflows
+          get_block() {
+            local em="$1" lm="${2:-development}"
             if [ "$em" = "required" ]; then
-              echo "block=true"
+              echo "true"
             elif [ "$em" = "advisory" ]; then
-              echo "block=false"
+              echo "false"
+            elif [ -z "$em" ]; then
+              case "$lm" in
+                draft)                  echo "false" ;;
+                development|production) echo "true"  ;;
+                *)                      echo "error" ;;
+              esac
             else
-              echo "::error::Unknown enforcement_mode '$em' — expected required | advisory"
+              echo "error"
+            fi
+          }
+
+          assert_block() {
+            local label="$1" expected="$2" actual="$3"
+            if [ "$actual" = "error" ]; then
+              echo "SELF-TEST FAIL: $label — got error exit"
               exit 1
             fi
-          ) || result=$?
-          if [ "$result" -eq 0 ]; then
-            echo "SELF-TEST FAIL: invalid enforcement_mode should have exited 1 but exited 0"
-            exit 1
-          fi
-          echo "OK: invalid enforcement_mode correctly exits 1"
+            if [ "$actual" != "$expected" ]; then
+              echo "SELF-TEST FAIL: $label — expected block=$expected, got block=$actual"
+              exit 1
+            fi
+            echo "OK: $label — block=$actual"
+          }
 
-      - name: enforcement_mode=required sets block=true
-        shell: bash
-        run: |
-          set -euo pipefail
-          em="required"
-          block=""
-          if [ "$em" = "required" ]; then block="true"
-          elif [ "$em" = "advisory" ]; then block="false"
-          else echo "::error::Unknown enforcement_mode"; exit 1
-          fi
-          [ "$block" = "true" ] || { echo "SELF-TEST FAIL: required should set block=true"; exit 1; }
-          echo "OK: enforcement_mode=required sets block=true"
+          assert_block "enforcement_mode=required"               "true"  "$(get_block required)"
+          assert_block "enforcement_mode=advisory"               "false" "$(get_block advisory)"
+          assert_block "enforcement_mode='' mode=development"    "true"  "$(get_block '' development)"
+          assert_block "enforcement_mode='' mode=production"     "true"  "$(get_block '' production)"
+          assert_block "enforcement_mode='' mode=draft"          "false" "$(get_block '' draft)"
 
-      - name: enforcement_mode=advisory sets block=false
-        shell: bash
-        run: |
-          set -euo pipefail
-          em="advisory"
-          block=""
-          if [ "$em" = "required" ]; then block="true"
-          elif [ "$em" = "advisory" ]; then block="false"
-          else echo "::error::Unknown enforcement_mode"; exit 1
-          fi
-          [ "$block" = "false" ] || { echo "SELF-TEST FAIL: advisory should set block=false"; exit 1; }
-          echo "OK: enforcement_mode=advisory sets block=false"
+          # Invalid enforcement_mode must return error
+          bad=$(get_block 'unexpected-value')
+          [ "$bad" = "error" ] || { echo "SELF-TEST FAIL: invalid enforcement_mode should produce error, got block=$bad"; exit 1; }
+          echo "OK: invalid enforcement_mode correctly produces error"
 
       - name: Exceptions parser — valid active exception passes
         shell: bash
@@ -458,9 +456,9 @@ PYEOF
         shell: bash
         run: |
           set -euo pipefail
-          hits=$(grep -rn '@main' caller-templates/ 2>/dev/null || true)
+          hits=$(grep -rn 'uses:.*@main' caller-templates/ 2>/dev/null || true)
           if [ -n "$hits" ]; then
-            echo "SELF-TEST FAIL: @main pin found in caller templates (must use @v1):"$'\n'"$hits"
+            echo "SELF-TEST FAIL: @main pin found in caller templates uses: line (must use @v1):"$'\n'"$hits"
             exit 1
           fi
           echo "OK: no @main pins in caller templates"

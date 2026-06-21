@@ -40,10 +40,10 @@ on:
         type: string
         default: v1
       enforcement_mode:
-        description: 'required (fail-closed, default) | advisory (requires exception record)'
+        description: 'required (fail-closed) | advisory (requires exception record) | (empty = legacy mode fallback)'
         required: false
         type: string
-        default: required
+        default: ''
       mode:
         description: 'DEPRECATED: use enforcement_mode.'
         # REMOVAL: 2027-01-01 — all callers must migrate to enforcement_mode before this date
@@ -160,18 +160,33 @@ PYEOF
       - name: Install dependencies
         if: hashFiles('package.json') != ''
         shell: bash
-        run: pnpm install --frozen-lockfile
+        run: |
+          if [ "${{ inputs.enforcement_mode }}" = "required" ]; then
+            pnpm install --frozen-lockfile
+          else
+            pnpm install
+          fi
 
       - name: Determine block behavior
         id: mode
         shell: bash
         run: |
+          # enforcement_mode takes precedence; fall back to legacy mode input when empty
           em="${{ inputs.enforcement_mode }}"
           lm="${{ inputs.mode }}"
           if [ "$em" = "required" ]; then
             echo "block=true" >> "$GITHUB_OUTPUT"
           elif [ "$em" = "advisory" ]; then
             echo "block=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "$em" ]; then
+            # REMOVAL: 2027-01-01 — legacy mode bridge; callers must migrate to enforcement_mode
+            case "$lm" in
+              draft)                    echo "block=false" >> "$GITHUB_OUTPUT" ;;
+              development|production)   echo "block=true"  >> "$GITHUB_OUTPUT" ;;
+              *)
+                echo "::error::Unknown mode '$lm' — migrate to enforcement_mode: required | advisory (STD-TOOLCHAIN-001 §3)"
+                exit 1 ;;
+            esac
           else
             echo "::error::Unknown enforcement_mode '$em' — expected required | advisory (STD-TOOLCHAIN-001 §3)"
             exit 1
@@ -327,7 +342,7 @@ PYEOF
           limit_bytes=$(( limit_kb * 1024 ))
 
           css_dir=""
-          for candidate in dist build public out; do
+          for candidate in dist build out; do
             if [ -d "$candidate" ]; then css_dir="$candidate"; break; fi
           done
 

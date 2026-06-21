@@ -6,7 +6,7 @@ and means a standard update fixes every repo at once.
 
 ## Source repo
 
-`Starisian-Technologies/starisian-technologies-coding-standards`
+`Starisian-Technologies/starisian-coding-standards`
 (public — no auth needed to call reusable workflows)
 
 ## How to add a reusable workflow
@@ -27,7 +27,7 @@ on:
 
 jobs:
   pnpm:
-    uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/pnpm-enforcement.yml@main
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/pnpm-enforcement.yml@v1
     with:
       mode: development
 
@@ -62,15 +62,15 @@ on:
     branches: [main]
 jobs:
   pnpm:
-    uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/pnpm-enforcement.yml@main
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/pnpm-enforcement.yml@v1
     with:
       mode: development
   php:
-    uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/php-standards.yml@main
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/php-standards.yml@v1
     with:
       phpstan_level: "5"
   wp-plugin-check:
-    uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/wp-plugin-check.yml@main
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/wp-plugin-check.yml@v1
 ```
 
 ## Example: JS/React app
@@ -83,15 +83,15 @@ on:
     branches: [main]
 jobs:
   pnpm:
-    uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/pnpm-enforcement.yml@main
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/pnpm-enforcement.yml@v1
     with:
       mode: development
   js:
-    uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/js-standards.yml@main
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/js-standards.yml@v1
   css:
-    uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/css-standards.yml@main
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/css-standards.yml@v1
   formatting:
-    uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/formatting.yml@main
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/formatting.yml@v1
 ```
 
 ## Example: Node backend
@@ -104,13 +104,13 @@ on:
     branches: [main]
 jobs:
   pnpm:
-    uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/pnpm-enforcement.yml@main
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/pnpm-enforcement.yml@v1
     with:
       mode: development
   js:
-    uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/js-standards.yml@main
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/js-standards.yml@v1
   formatting:
-    uses: Starisian-Technologies/starisian-technologies-coding-standards/.github/workflows/formatting.yml@main
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/formatting.yml@v1
 ```
 
 ## Mode input
@@ -141,7 +141,7 @@ available to all repos.
   files per check.
 - **Always pin to a release tag (e.g., `@v1`).** The coding-standards
   repo uses semantic versioning; pin to the current major tag so you
-  receive non-breaking updates automatically. Never pin to `@main` in
+  receive non-breaking updates automatically. Never pin to `@v1` in
   production — breaking changes land on `main` first. See
   STD-TOOLCHAIN-001 §3 for the three-axis versioning model.
 - **Don't duplicate checks.** If the reusable workflow checks phpcs,
