@@ -1,0 +1,254 @@
+# Reusable workflow: enforce CSS/build-limits standards (css-standard.md) in any consuming repo.
+#
+# Backs rule IDs in CI-Enforcement-Matrix.md § CSS / Build Limits.
+# Mode-aware: draft warns; development + production block.
+# Assumes pnpm (per ADR-017).
+#
+# Caller example (.github/workflows/standards.yml in a consuming repo):
+#
+#   name: Standards
+#   on: [pull_request, push]
+#   jobs:
+#     css:
+#       uses: starisian-technologies/starisian-coding-standards/.github/workflows/css-enforcement.yml@main
+#       with:
+#         mode: development           # draft | development | production
+#         css-size-limit-kb: 50       # optional, max gzipped CSS bundle KB (default 50)
+
+name: CSS enforcement (css-standard)
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: 'System mode (draft warns; development/production block).'
+        required: false
+        type: string
+        default: development
+      node-version:
+        description: 'Node.js version to use.'
+        required: false
+        type: string
+        default: '22'
+      css-size-limit-kb:
+        description: 'Max gzipped CSS bundle size in KB (CSS-BUNDLE-001, default 50).'
+        required: false
+        type: number
+        default: 50
+
+jobs:
+  enforce:
+    name: CSS standards conformance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Enable corepack (pnpm)
+        if: hashFiles('package.json') != ''
+        shell: bash
+        run: corepack enable
+
+      - name: Install dependencies
+        if: hashFiles('package.json') != ''
+        shell: bash
+        run: pnpm install --frozen-lockfile
+
+      - name: Determine block behavior
+        id: mode
+        shell: bash
+        run: |
+          case "${{ inputs.mode }}" in
+            draft) echo "block=false" >> "$GITHUB_OUTPUT" ;;
+            development|production) echo "block=true" >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "::error::Unknown mode '${{ inputs.mode }}' — expected draft | development | production"
+              exit 1
+              ;;
+          esac
+
+      - name: CSS-LINT-001 — Stylelint
+        if: hashFiles('.stylelintrc*') != '' || hashFiles('stylelint.config.*') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! pnpm exec stylelint "**/*.css" "**/*.scss" "**/*.less" \
+               --ignore-path .gitignore \
+               --max-warnings 0 2>&1; then
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::CSS-LINT-001: Stylelint violations found"
+              exit 1
+            else
+              pnpm exec stylelint "**/*.css" "**/*.scss" "**/*.less" \
+                --ignore-path .gitignore || true
+              echo "::warning::CSS-LINT-001: Stylelint violations (non-blocking in ${{ inputs.mode }} mode)"
+            fi
+          fi
+
+      - name: CSS-PERF-001 — no prohibited CSS properties (blur, backdrop-filter, layout animations)
+        shell: bash
+        run: |
+          set -euo pipefail
+          violations=()
+
+          check_pattern() {
+            local label="$1" pattern="$2"
+            local hits
+            hits=$(grep -rEn \
+              --include='*.css' --include='*.scss' --include='*.less' \
+              --exclude-dir=node_modules --exclude-dir=vendor \
+              "$pattern" . 2>/dev/null || true)
+            if [ -n "$hits" ]; then
+              violations+=("$label:"$'\n'"$hits")
+            fi
+          }
+
+          check_pattern "CSS-PERF-001 filter:blur" 'filter\s*:\s*blur\s*\('
+          check_pattern "CSS-PERF-002 backdrop-filter" 'backdrop-filter\s*:'
+          check_pattern "CSS-PERF-003 box-shadow spread>4px" 'box-shadow\s*:[^;]*\s[5-9][0-9]*px|box-shadow\s*:[^;]*\s[1-9][0-9]+px'
+          check_pattern "CSS-PERF-004 animation on layout properties" \
+            'animation\s*:[^;]*(width|height|top|left|right|bottom|margin|padding)'
+          check_pattern "CSS-PERF-004 transition on layout properties" \
+            'transition\s*:[^;]*(width|height|top|left|right|bottom|margin|padding)'
+
+          if [ ${#violations[@]:-0} -gt 0 ]; then
+            msg="Prohibited CSS performance patterns found:"$'\n'"${violations[*]}"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: CSS-SPEC-001 — no ID selectors in stylesheets
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -rEn \
+            --include='*.css' --include='*.scss' --include='*.less' \
+            --exclude-dir=node_modules --exclude-dir=vendor \
+            '^[[:space:]]*#[a-zA-Z][a-zA-Z0-9_-]*[[:space:]]*\{|,[[:space:]]*#[a-zA-Z]' \
+            . 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            msg=$'CSS-SPEC-001: ID selectors found in stylesheets — use class selectors only:\n'"$hits"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: CSS-TOKEN-001 — no hardcoded hex colors outside token definitions
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Flag hex colors used in property values outside :root / token definition files.
+          # This is a heuristic — it flags probable violations for human review.
+          hits=$(grep -rEn \
+            --include='*.css' --include='*.scss' \
+            --exclude-dir=node_modules --exclude-dir=vendor \
+            '(color|background|border|fill|stroke)\s*:\s*#[0-9a-fA-F]{3,8}' \
+            . 2>/dev/null \
+            | grep -v ':root' \
+            | grep -v 'tokens\.' \
+            | grep -v '_tokens\.' \
+            || true)
+          if [ -n "$hits" ]; then
+            msg=$'CSS-TOKEN-001: hardcoded hex colors found outside token definitions — use CSS custom properties:\n'"$hits"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: CSS-TYPE-001 — no px font sizes
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -rEn \
+            --include='*.css' --include='*.scss' --include='*.less' \
+            --exclude-dir=node_modules --exclude-dir=vendor \
+            'font-size\s*:\s*[0-9]+px' \
+            . 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            msg=$'CSS-TYPE-001: px font sizes found — use rem units to respect browser settings:\n'"$hits"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: CSS-A11Y-001 — no outline:none without replacement
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -rEn \
+            --include='*.css' --include='*.scss' --include='*.less' \
+            --exclude-dir=node_modules --exclude-dir=vendor \
+            'outline\s*:\s*(none|0)' \
+            . 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            msg=$'CSS-A11Y-001: outline:none or outline:0 found — must provide a visible focus replacement:\n'"$hits"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: CSS-BUILD-001 — production build
+        if: hashFiles('package.json') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! pnpm run --if-present build 2>&1; then
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::CSS-BUILD-001: CSS production build failed"
+              exit 1
+            else
+              echo "::warning::CSS-BUILD-001: CSS production build failed (non-blocking in ${{ inputs.mode }} mode)"
+            fi
+          fi
+
+      - name: CSS-BUNDLE-001 — bundle size ≤ ${{ inputs.css-size-limit-kb }} KB gzipped
+        shell: bash
+        run: |
+          set -euo pipefail
+          limit_kb="${{ inputs.css-size-limit-kb }}"
+          limit_bytes=$(( limit_kb * 1024 ))
+
+          css_dir=""
+          for candidate in dist build public out; do
+            if [ -d "$candidate" ]; then css_dir="$candidate"; break; fi
+          done
+
+          if [ -z "$css_dir" ]; then
+            echo "::notice::CSS-BUNDLE-001: no build output directory found — skipping bundle size check"
+            exit 0
+          fi
+
+          exceeded=()
+          while IFS= read -r -d '' file; do
+            size=$(gzip -c "$file" | wc -c)
+            if [ "$size" -gt "$limit_bytes" ]; then
+              size_kb=$(( size / 1024 ))
+              exceeded+=("$file (${size_kb} KB gzipped, limit ${limit_kb} KB)")
+            fi
+          done < <(find "$css_dir" -name '*.css' -not -name '*.map' -print0)
+
+          if [ ${#exceeded[@]:-0} -gt 0 ]; then
+            msg="CSS-BUNDLE-001: CSS bundle(s) exceed ${limit_kb} KB gzipped limit: ${exceeded[*]}"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi

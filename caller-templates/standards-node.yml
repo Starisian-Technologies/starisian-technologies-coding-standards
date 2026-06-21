@@ -1,0 +1,31 @@
+# Drop this file into a Node.js / server-side TypeScript consuming repo at:
+#   .github/workflows/standards.yml
+#
+# Then set the `mode` input to match the repo's lifecycle stage.
+# All enforcement logic lives in starisian-coding-standards — no rules here.
+
+name: Starisian Standards
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+jobs:
+  pnpm:
+    uses: starisian-technologies/starisian-coding-standards/.github/workflows/pnpm-enforcement.yml@main
+    with:
+      mode: development   # draft | development | production
+
+  node:
+    needs: pnpm
+    uses: starisian-technologies/starisian-coding-standards/.github/workflows/node-enforcement.yml@main
+    with:
+      mode: development
+      node-version: '22'
+
+  media:
+    # Remove if repo has no audio/video/upload features.
+    uses: starisian-technologies/starisian-coding-standards/.github/workflows/media-enforcement.yml@main
+    with:
+      mode: development

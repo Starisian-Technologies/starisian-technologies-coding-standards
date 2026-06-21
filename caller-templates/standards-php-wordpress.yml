@@ -1,0 +1,39 @@
+# Drop this file into a WordPress/PHP consuming repo at:
+#   .github/workflows/standards.yml
+#
+# Then set the `mode` input to match the repo's lifecycle stage.
+# All enforcement logic lives in starisian-coding-standards — no rules here.
+
+name: Starisian Standards
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+jobs:
+  pnpm:
+    # Skip if repo has no package.json (pure PHP repos). Remove this job if so.
+    if: ${{ hashFiles('package.json') != '' }}
+    uses: starisian-technologies/starisian-coding-standards/.github/workflows/pnpm-enforcement.yml@main
+    with:
+      mode: development   # draft | development | production
+
+  php:
+    uses: starisian-technologies/starisian-coding-standards/.github/workflows/php-enforcement.yml@main
+    with:
+      mode: development
+      php-version: '8.3'
+      phpstan-level: '5'
+
+  css:
+    # Remove if repo has no stylesheets.
+    uses: starisian-technologies/starisian-coding-standards/.github/workflows/css-enforcement.yml@main
+    with:
+      mode: development
+
+  media:
+    # Remove if repo has no audio/video/upload features.
+    uses: starisian-technologies/starisian-coding-standards/.github/workflows/media-enforcement.yml@main
+    with:
+      mode: development

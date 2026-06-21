@@ -1,0 +1,264 @@
+# Reusable workflow: enforce Node.js / server-side TypeScript standards (node-standard.md) in any consuming repo.
+#
+# Backs rule IDs in CI-Enforcement-Matrix.md § 3. TypeScript / Node.js Enforcement.
+# Mode-aware: draft warns; development + production block.
+# Assumes pnpm (per ADR-017). Call pnpm-enforcement.yml first.
+#
+# Caller example (.github/workflows/standards.yml in a consuming repo):
+#
+#   name: Standards
+#   on: [pull_request, push]
+#   jobs:
+#     pnpm:
+#       uses: starisian-technologies/starisian-coding-standards/.github/workflows/pnpm-enforcement.yml@main
+#       with:
+#         mode: development
+#     node:
+#       needs: pnpm
+#       uses: starisian-technologies/starisian-coding-standards/.github/workflows/node-enforcement.yml@main
+#       with:
+#         mode: development
+
+name: Node.js enforcement (node-standard)
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: 'System mode (draft warns; development/production block).'
+        required: false
+        type: string
+        default: development
+      node-version:
+        description: 'Node.js LTS version to use.'
+        required: false
+        type: string
+        default: '22'
+
+jobs:
+  enforce:
+    name: Node.js/TS standards conformance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Enable corepack (pnpm)
+        shell: bash
+        run: corepack enable
+
+      - name: Install dependencies
+        shell: bash
+        run: pnpm install --frozen-lockfile
+
+      - name: Determine block behavior
+        id: mode
+        shell: bash
+        run: |
+          case "${{ inputs.mode }}" in
+            draft) echo "block=false" >> "$GITHUB_OUTPUT" ;;
+            development|production) echo "block=true" >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "::error::Unknown mode '${{ inputs.mode }}' — expected draft | development | production"
+              exit 1
+              ;;
+          esac
+
+      - name: NODE-TYPE-001 — TypeScript strict check (noEmit)
+        if: hashFiles('tsconfig.json') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! pnpm exec tsc --noEmit 2>&1; then
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::NODE-TYPE-001: TypeScript violations found (noImplicitAny / strict)"
+              exit 1
+            else
+              pnpm exec tsc --noEmit || true
+              echo "::warning::NODE-TYPE-001: TypeScript errors (non-blocking in ${{ inputs.mode }} mode)"
+            fi
+          fi
+
+      - name: NODE-TYPE-001 — tsconfig.json strict mode enabled
+        if: hashFiles('tsconfig.json') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          strict=$(node -e "
+            const fs = require('fs');
+            try {
+              const cfg = JSON.parse(fs.readFileSync('tsconfig.json','utf8'));
+              process.stdout.write(String(cfg?.compilerOptions?.strict ?? false));
+            } catch { process.stdout.write('parse-error'); }
+          ")
+          if [ "$strict" != "true" ]; then
+            msg='NODE-TYPE-001: tsconfig.json missing "strict": true — strict mode is mandatory'
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: NODE-LINT-001 — ESLint with @typescript-eslint
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! pnpm exec eslint . --max-warnings=0 2>&1; then
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::NODE-LINT-001: ESLint violations found"
+              exit 1
+            else
+              pnpm exec eslint . || true
+              echo "::warning::NODE-LINT-001: ESLint violations (non-blocking in ${{ inputs.mode }} mode)"
+            fi
+          fi
+
+      - name: NODE-EVAL-001 — no eval() or new Function() in source
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -rEn \
+            --include='*.ts' --include='*.js' --include='*.mjs' \
+            --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
+            '\beval\s*\(|new\s+Function\s*\(' \
+            . 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            msg=$'NODE-EVAL-001: eval() or new Function() found — arbitrary code execution is forbidden:\n'"$hits"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: NODE-SQL-001 — no raw SQL interpolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -rEn \
+            --include='*.ts' --include='*.js' \
+            --exclude-dir=node_modules --exclude-dir=dist \
+            '\.(query|raw)\s*\(`[^`]*\$\{' \
+            . 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            msg=$'NODE-SQL-001: raw SQL string interpolation found — use parameterized queries:\n'"$hits"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: NODE-SQL-002 — no SELECT *
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -rEin \
+            --include='*.ts' --include='*.js' \
+            --exclude-dir=node_modules --exclude-dir=dist \
+            'SELECT\s+\*\s+FROM' \
+            . 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            msg=$'NODE-SQL-002: SELECT * found — enumerate columns explicitly:\n'"$hits"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: NODE-ENV-001 — no hardcoded secrets or process.env in business logic
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Flag process.env access outside of a config module.
+          # Heuristic: any TS/JS file not named config.* or env.* that references process.env
+          hits=$(grep -rEln \
+            --include='*.ts' --include='*.js' \
+            --exclude-dir=node_modules --exclude-dir=dist \
+            'process\.env\.' \
+            . 2>/dev/null \
+            | grep -vE '(config|env|settings|constants)\.(ts|js|mjs)$' \
+            | grep -vE '__tests__|\.test\.|\.spec\.' \
+            || true)
+          if [ -n "$hits" ]; then
+            msg=$'NODE-ENV-001: process.env accessed outside config module in:\n'"$hits"$'\nMove all env reads to a dedicated config module.'
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: NODE-LOG-001 — no console.log in production source
+        if: inputs.mode == 'production'
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -rEn \
+            --include='*.ts' --include='*.js' \
+            --exclude-dir=node_modules --exclude-dir=dist \
+            --exclude='*.test.*' --exclude='*.spec.*' \
+            'console\.(log|warn|error|debug|info)\s*\(' \
+            . 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            echo "::error::NODE-LOG-001: console.* found in production source — use structured logger:"
+            echo "$hits"
+            exit 1
+          fi
+
+      - name: NODE-ESM-001 — package.json declares "type": "module"
+        if: hashFiles('package.json') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          pkg_type=$(node -e "
+            try {
+              const p = require('./package.json');
+              process.stdout.write(p.type || '');
+            } catch { process.stdout.write(''); }
+          ")
+          if [ "$pkg_type" != "module" ]; then
+            msg='NODE-ESM-001: package.json missing "type": "module" — ESM required for new services'
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: NODE-TEST-001 — Jest test suite
+        if: hashFiles('jest.config.*') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! pnpm exec jest --ci --passWithNoTests 2>&1; then
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::NODE-TEST-001: Jest test suite failed"
+              exit 1
+            else
+              pnpm exec jest --ci --passWithNoTests || true
+              echo "::warning::NODE-TEST-001: Jest failures (non-blocking in ${{ inputs.mode }} mode)"
+            fi
+          fi
+
+      - name: NODE-AUDIT-001 — pnpm vulnerability audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! pnpm audit --audit-level=high 2>&1; then
+            msg='NODE-AUDIT-001: high or critical CVEs found in dependencies — review pnpm audit output'
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              pnpm audit --audit-level=high || true
+              echo "::warning::$msg"
+            fi
+          fi

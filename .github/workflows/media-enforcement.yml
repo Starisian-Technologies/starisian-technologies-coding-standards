@@ -1,0 +1,189 @@
+# Reusable workflow: enforce media/upload standards (media-upload-standard.md) in any consuming repo.
+#
+# Backs rule IDs in CI-Enforcement-Matrix.md § Media / Audio / TUS.
+# Mode-aware: draft warns; development + production block.
+# Performs static analysis on JS/TS source — runtime codec checks require Jest tests in the consuming repo.
+#
+# Caller example (.github/workflows/standards.yml in a consuming repo):
+#
+#   name: Standards
+#   on: [pull_request, push]
+#   jobs:
+#     media:
+#       uses: starisian-technologies/starisian-coding-standards/.github/workflows/media-enforcement.yml@main
+#       with:
+#         mode: development   # draft | development | production
+
+name: Media/upload enforcement (media-upload-standard)
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: 'System mode (draft warns; development/production block).'
+        required: false
+        type: string
+        default: development
+
+jobs:
+  enforce:
+    name: Media/upload standards conformance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine block behavior
+        id: mode
+        shell: bash
+        run: |
+          case "${{ inputs.mode }}" in
+            draft) echo "block=false" >> "$GITHUB_OUTPUT" ;;
+            development|production) echo "block=true" >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "::error::Unknown mode '${{ inputs.mode }}' — expected draft | development | production"
+              exit 1
+              ;;
+          esac
+
+      - name: MEDIA-RECORDER-001 — no direct new MediaRecorder() in product code
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -rEn \
+            --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' \
+            --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=vendor \
+            --exclude='*.test.*' --exclude='*.spec.*' \
+            'new\s+MediaRecorder\s*\(' \
+            . 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            msg=$'MEDIA-RECORDER-001: direct new MediaRecorder() found — all recording must go through the approved SDK:\n'"$hits"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: MEDIA-CONSTRAINTS-001 — getUserMedia constraints enforce sampleRate ≤ 16000
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Grep for getUserMedia calls and check for missing or over-limit sampleRate.
+          # Heuristic: flag files that call getUserMedia without an explicit sampleRate constraint.
+          files_without_sr=$(grep -rEln \
+            --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' \
+            --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=vendor \
+            --exclude='*.test.*' --exclude='*.spec.*' \
+            'getUserMedia\s*\(' \
+            . 2>/dev/null \
+            | xargs grep -L 'sampleRate' 2>/dev/null \
+            || true)
+          if [ -n "$files_without_sr" ]; then
+            msg=$'MEDIA-CONSTRAINTS-001: getUserMedia() called without sampleRate constraint — max 16000 Hz required:\n'"$files_without_sr"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: MEDIA-AUTOSTART-001 — no auto-start capture (getUserMedia not in DOMContentLoaded / load handlers)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Flag getUserMedia called directly at module scope or in load/DOMContentLoaded without user gesture guard.
+          # This is a heuristic static check — full enforcement requires E2E tests.
+          hits=$(grep -rEn \
+            --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' \
+            --exclude-dir=node_modules --exclude-dir=dist \
+            --exclude='*.test.*' --exclude='*.spec.*' \
+            "addEventListener\s*\(\s*['\"]DOMContentLoaded['\"].*getUserMedia|addEventListener\s*\(\s*['\"]load['\"].*getUserMedia" \
+            . 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            msg=$'MEDIA-AUTOSTART-001: getUserMedia() may be called on page load — capture must only start on explicit user action:\n'"$hits"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: MEDIA-TUS-001 — no full-file upload endpoints (no multipart/form-data without TUS)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Flag fetch/axios POSTs with FormData that are not TUS PATCH requests.
+          hits=$(grep -rEn \
+            --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' \
+            --exclude-dir=node_modules --exclude-dir=dist \
+            --exclude='*.test.*' --exclude='*.spec.*' \
+            "new\s+FormData\s*\(\s*\)" \
+            . 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            msg=$'MEDIA-TUS-001: FormData usage found — all uploads must use TUS chunked protocol, not full-file POST:\n'"$hits"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: MEDIA-CHUNK-001 — TUS chunk size ≤ 512 KB in source constants
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Flag chunk size constants > 524288 bytes (512 KB).
+          hits=$(grep -rEn \
+            --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' \
+            --exclude-dir=node_modules --exclude-dir=dist \
+            'chunkSize\s*[=:]\s*[6-9][0-9]{5,}|chunkSize\s*[=:]\s*[1-9][0-9]{6,}' \
+            . 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            msg=$'MEDIA-CHUNK-001: TUS chunk size constant > 512 KB found:\n'"$hits"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: MEDIA-FFMPEG-001 — no user-supplied FFmpeg arguments (server-side)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Flag FFmpeg invocations that interpolate request/user variables into argument strings.
+          hits=$(grep -rEn \
+            --include='*.ts' --include='*.js' --include='*.php' \
+            --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=vendor \
+            --exclude='*.test.*' --exclude='*.spec.*' \
+            'ffmpeg[^`"'"'"']*\$\{?(req|body|params|query|user|input)\b' \
+            . 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            msg=$'MEDIA-FFMPEG-001: possible user-supplied argument interpolated into FFmpeg command — server must define all output parameters:\n'"$hits"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
+
+      - name: MEDIA-WAV-001 — no WAV or uncompressed PCM upload/output
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -rEin \
+            --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' --include='*.php' \
+            --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=vendor \
+            --exclude='*.test.*' --exclude='*.spec.*' \
+            "['\"]audio/wav['\"]|['\"]audio/x-wav['\"]|['\"]audio/pcm['\"]|\\.wav['\"]" \
+            . 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            msg=$'MEDIA-WAV-001: WAV or uncompressed PCM format reference found — use Opus or AAC-LC only:\n'"$hits"
+            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+              echo "::error::$msg"; exit 1
+            else
+              echo "::warning::$msg"
+            fi
+          fi
