@@ -1,6 +1,19 @@
 # Platform Standard — Toolchain & Quality Enforcement
 
-> ADR Citations: ADR-017 (pnpm), ADR-042 (exceptions). All other requirements are pending ADR assignment — treat as draft authority until cited.
+> **STATUS: DRAFT — PROPOSAL ONLY**
+> Per AGENTS.md: "No ADR = no standard." Normative authority exists only for sections with explicit ADR citations below.
+> Uncited sections are implementation proposals pending ADR ratification; they MUST NOT be treated as binding requirements.
+>
+> | Cited | Section | Authority |
+> |-------|---------|-----------|
+> | ✅ ADR-017 | §7 Package Manager (pnpm) | Normative |
+> | ✅ ADR-042 | §8 Exception Process | Normative |
+> | ⏳ pending | §3 Three-Axis Versioning | Proposal |
+> | ⏳ pending | §4 Self-Test Fixtures | Proposal |
+> | ⏳ pending | §5 Governed-Action Gate | Proposal |
+> | ⏳ pending | §9 Profiles | Proposal |
+> | ⏳ pending | §10 Bucket Classification | Proposal |
+
 Standard ID: STD-TOOLCHAIN-001
 Version: 1.3
 Status: Draft
@@ -31,7 +44,7 @@ Each consuming repo's `standards.yml` caller has three independent version axes:
 
 | Axis | Where Set | What It Controls |
 |------|-----------|-----------------|
-| Workflow ref (`@v1.x.x`) | `uses:` line | The executable — bugfixes only |
+| Workflow ref (`@v1`) | `uses:` line | The executable — bugfixes only |
 | `profile_version` (e.g. `v1`) | `with:` input | Dependency/config contract |
 | `enforcement_mode` | `with:` input | `required` (fail-closed) or `advisory` |
 

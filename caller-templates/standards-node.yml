@@ -1,7 +1,7 @@
 # Drop this file into a standalone-node consuming repo at:
 #   .github/workflows/standards.yml
 #
-# Pin the workflow ref to a release tag (@v1.x.x), never @main in production.
+# Pin the workflow ref to a major release tag (e.g. @v1), never @main in production.
 
 name: Starisian Standards
 

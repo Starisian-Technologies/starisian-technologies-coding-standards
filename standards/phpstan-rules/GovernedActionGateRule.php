@@ -71,12 +71,12 @@ class GovernedActionGateRule implements Rule
         return [
             RuleErrorBuilder::message(
                 sprintf(
-                    'STD-TOOLCHAIN-001 §5: Governed mutation entry point %s() must call %s() before mutating state.',
+                    'STD-TOOLCHAIN-001 §5: Governed mutation entry point %s() must call %s() somewhere in its body.',
                     $name,
                     self::GATE_FUNCTION
                 )
             )
-            ->tip('Add ' . self::GATE_FUNCTION . '() as the first call in this entry point.')
+            ->tip('Add ' . self::GATE_FUNCTION . '() to this entry point.')
             ->build(),
         ];
     }

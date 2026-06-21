@@ -40,17 +40,17 @@ jobs:
 
 Not every repo needs every job. Include only what applies:
 
-| Job | Include when |
-|---|---|
-| `pnpm` | Repo has a `package.json` |
-| `php` | Repo has PHP code |
-| `js` | Repo has JavaScript or TypeScript |
-| `css` | Repo has CSS or stylesheets |
-| `formatting` | Always — checks Prettier formatting |
-| `wp-plugin-check` | Repo is a WordPress plugin |
+| Job | Workflow | Include when |
+|---|---|---|
+| `pnpm` | `pnpm-enforcement.yml` | Repo has a `package.json` |
+| `php` | `php-enforcement.yml` | Repo has PHP code |
+| `react` | `react-enforcement.yml` | Repo is a standalone React app |
+| `node` | `node-enforcement.yml` | Repo is a standalone Node/TS service |
+| `css` | `css-enforcement.yml` | Repo has CSS or stylesheets |
+| `media` | `media-enforcement.yml` | Repo records, uploads, or processes audio/video |
 
-PHP-only repos (no JS) skip the `js`, `css`, and `pnpm` jobs.
-JS-only repos (no PHP) skip the `php` and `wp-plugin-check` jobs.
+PHP-only repos (no JS) skip the `react`, `node`, and `css` jobs.
+JS/React repos (no PHP) skip the `php` job.
 
 ## Example: PHP WordPress plugin
 
@@ -66,14 +66,15 @@ jobs:
     with:
       mode: development
   php:
-    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/php-standards.yml@v1
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/php-enforcement.yml@v1
     with:
-      phpstan_level: "5"
-  wp-plugin-check:
-    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/wp-plugin-check.yml@v1
+      repo_type: wp-plugin
+      profile_version: v1
+      enforcement_mode: required
+      phpstan-level: '5'
 ```
 
-## Example: JS/React app
+## Example: standalone React app
 
 ```yaml
 name: Platform Standards
@@ -86,15 +87,26 @@ jobs:
     uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/pnpm-enforcement.yml@v1
     with:
       mode: development
-  js:
-    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/js-standards.yml@v1
+  react:
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/react-enforcement.yml@v1
+    with:
+      repo_type: standalone-react
+      profile_version: v1
+      enforcement_mode: required
   css:
-    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/css-standards.yml@v1
-  formatting:
-    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/formatting.yml@v1
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/css-enforcement.yml@v1
+    with:
+      repo_type: standalone-react
+      profile_version: v1
+      enforcement_mode: required
+  media:
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/media-enforcement.yml@v1
+    with:
+      enforcement_mode: required
+      profile_version: v1
 ```
 
-## Example: Node backend
+## Example: standalone Node backend
 
 ```yaml
 name: Platform Standards
@@ -107,10 +119,17 @@ jobs:
     uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/pnpm-enforcement.yml@v1
     with:
       mode: development
-  js:
-    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/js-standards.yml@v1
-  formatting:
-    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/formatting.yml@v1
+  node:
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/node-enforcement.yml@v1
+    with:
+      repo_type: standalone-node
+      profile_version: v1
+      enforcement_mode: required
+  media:
+    uses: Starisian-Technologies/starisian-coding-standards/.github/workflows/media-enforcement.yml@v1
+    with:
+      enforcement_mode: required
+      profile_version: v1
 ```
 
 ## Mode input
@@ -141,7 +160,7 @@ available to all repos.
   files per check.
 - **Always pin to a release tag (e.g., `@v1`).** The coding-standards
   repo uses semantic versioning; pin to the current major tag so you
-  receive non-breaking updates automatically. Never pin to `@v1` in
+  receive non-breaking updates automatically. Never pin to `@main` in
   production — breaking changes land on `main` first. See
   STD-TOOLCHAIN-001 §3 for the three-axis versioning model.
 - **Don't duplicate checks.** If the reusable workflow checks phpcs,

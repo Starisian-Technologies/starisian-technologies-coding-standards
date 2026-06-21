@@ -1,9 +1,9 @@
 # Drop this file into a WordPress/PHP consuming repo at:
 #   .github/workflows/standards.yml
 #
-# Pin the workflow ref to a release tag (@v1.x.x), never @main in production.
+# Pin the workflow ref to a major release tag (e.g. @v1), never @main in production.
 # Three independent axes — move them independently:
-#   1. Workflow ref  (@v1.x.x)     — the executable. Bugfixes bump this only.
+#   1. Workflow ref  (@v1)           — the executable. Bugfixes bump this only.
 #   2. profile_version (v1)         — the dependency/config contract. Bump to adopt new required surface.
 #   3. enforcement_mode (required)  — fail-closed. advisory requires a .standards/standards-exceptions.yml entry.
 
