@@ -25,8 +25,8 @@
     "wp-coding-standards/wpcs": "^3.1"
   },
   "scripts": {
-    "lint": "phpcs",
-    "lint:fix": "phpcbf",
+    "lint": "phpcs .",
+    "lint:fix": "phpcbf .",
     "analyze": "phpstan analyze"
   },
   "extra": {

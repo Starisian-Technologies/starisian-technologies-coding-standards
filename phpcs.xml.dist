@@ -13,7 +13,6 @@
     <exclude-pattern>*/dist/*</exclude-pattern>
 
     <!-- Base rulesets -->
-    <rule ref="WordPress-VIP-Go"/>
     <rule ref="WordPress"/>
 
     <!-- Strict types required on every file -->
@@ -35,12 +34,14 @@
     <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
         <properties>
             <!-- REQUIRED: Override this in the consuming repo's phpcs.xml with the actual plugin prefix -->
-            <property name="prefixes" type="array" value="YOUR_PREFIX"/>
+            <property name="prefixes" type="array">
+                <element value="YOUR_PREFIX"/>
+            </property>
         </properties>
     </rule>
 
     <!-- PHPStan level reference: minimum level 5, level 8 for core systems -->
-    <!-- Run separately: vendor/bin/phpstan analyse --level=5 -->
+    <!-- Run separately: vendor/bin/phpstan analyse (level=5) -->
 
     <!-- PSR-12 where not overridden by WordPress VIP -->
     <rule ref="PSR2.Methods.MethodDeclaration"/>
