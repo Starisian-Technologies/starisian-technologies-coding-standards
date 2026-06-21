@@ -6,6 +6,9 @@
 
 name: Fixture self-test (STD-TOOLCHAIN-001 §4)
 
+permissions:
+  contents: read
+
 on:
   push:
     paths:
