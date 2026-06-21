@@ -125,7 +125,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if ! pnpm run build 2>&1; then
+          if ! pnpm run --if-present build 2>&1; then
             if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
               echo "::error::JS-BUILD-001: Production build failed"
               exit 1
@@ -161,7 +161,7 @@ jobs:
             fi
           done < <(find "$js_dir" -name '*.js' -not -name '*.map' -print0)
 
-          if [ ${#exceeded[@]} -gt 0 ]; then
+          if [ ${#exceeded[@]:-0} -gt 0 ]; then
             msg="JS-BUNDLE-001: bundle(s) exceed ${limit_kb} KB gzipped limit: ${exceeded[*]}"
             if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
               echo "::error::$msg"

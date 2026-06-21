@@ -91,7 +91,7 @@ jobs:
             -not -path './vendor/*' \
             -not -path './node_modules/*' \
             -print0)
-          if [ ${#missing[@]} -gt 0 ]; then
+          if [ ${#missing[@]:-0} -gt 0 ]; then
             msg="PHP-STRICT-001: missing declare(strict_types=1) in: ${missing[*]}"
             if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
               echo "::error::$msg"
@@ -126,10 +126,16 @@ jobs:
           # Install WordPress VIP coding standards if available
           if composer show | grep -q 'automattic/vipwpcs' 2>/dev/null || \
              composer show | grep -q 'wp-coding-standards/wpcs' 2>/dev/null; then
-            phpcs --standard=WordPress --extensions=php \
-              --ignore=vendor/,node_modules/ \
-              $(find . -name '*.php' -not -path './vendor/*' -not -path './node_modules/*' | head -1 | xargs dirname) \
-              2>&1 | tee /tmp/phpcs-out.txt || true
+            php_file=$(find . -name '*.php' -not -path './vendor/*' -not -path './node_modules/*' | head -1)
+            if [ -n "$php_file" ]; then
+              scan_dir=$(dirname "$php_file")
+              phpcs --standard=WordPress --extensions=php \
+                --ignore=vendor/,node_modules/ \
+                "$scan_dir" \
+                2>&1 | tee /tmp/phpcs-out.txt || true
+            else
+              echo "::notice::PHP-LINT-001: No PHP files found to scan"
+            fi
           else
             echo "::notice::PHP-LINT-001: No phpcs.xml and WordPress VIP standards not installed — skipping PHPCS ruleset check. Add phpcs.xml to enable full enforcement."
           fi
