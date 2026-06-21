@@ -1,0 +1,30 @@
+# Dependency directories
+node_modules/
+vendor/
+
+# Build artifacts
+dist/
+build/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local env
+.env
+.env.local
+.env.*.local
+
+# Cached / generated
+.eslintcache
+.tsbuildinfo
+*.tsbuildinfo
