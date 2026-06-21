@@ -4,6 +4,28 @@ The organization-wide coding standards of Starisian Technologies. Read [`docs/st
 
 ---
 
+## Adopting CI Enforcement (Quick Start)
+
+Every product repo enforces these standards by calling the reusable workflows in this repo — no enforcement logic lives in product repos.
+
+**Step 1.** Create `.github/workflows/standards.yml` in your product repo. Choose the template for your repo type:
+
+| Repo type | Template |
+|-----------|----------|
+| WordPress plugin / PHP | [caller-templates/standards-php-wordpress.yml](caller-templates/standards-php-wordpress.yml) |
+| Standalone React app | [caller-templates/standards-react.yml](caller-templates/standards-react.yml) |
+| Standalone Node.js / TypeScript | [caller-templates/standards-node.yml](caller-templates/standards-node.yml) |
+
+**Step 2.** Copy the template verbatim into `.github/workflows/standards.yml` in your product repo.
+
+**Step 3.** Set `enforcement_mode: required` to fail-close the checks, or `enforcement_mode: advisory` for warn-only while onboarding.
+
+Full adoption guide: **[REUSABLE-WORKFLOWS.md](REUSABLE-WORKFLOWS.md)**
+
+Pin strategy: `@v1` (recommended) tracks the latest compatible v1 release. `@v1.x.x` pins to an exact immutable release. Never use `@main`.
+
+---
+
 ## Documentation Structure
 
 The standards are split into a language-agnostic handbook and per-language implementation rulebooks. Each document is independently enforceable.
@@ -20,6 +42,7 @@ The standards are split into a language-agnostic handbook and per-language imple
 | [docs/css-standard.md](docs/css-standard.md) | CSS / build limits — bundle size caps, prohibited properties, design tokens, accessibility, build pipeline |
 | [docs/media-upload-standard.md](docs/media-upload-standard.md) | Audio, video, and TUS upload — capture constraints, codec limits, chunked upload, atomicity, server-side processing |
 | [docs/enforcement-matrix.md](docs/enforcement-matrix.md) | Enforcement matrix — maps every rule to the tool that enforces it and the CI stage where it runs |
+| [docs/STD-TOOLCHAIN-001.md](docs/STD-TOOLCHAIN-001.md) | Toolchain standard — three-axis versioning, profile definitions, exception process, bucket classification |
 
 ### Root — Reference Documents
 
@@ -30,6 +53,7 @@ The standards are split into a language-agnostic handbook and per-language imple
 | [THE-STARISIAN-TECHNOLOGIES-CONSTITUTION.md](THE-STARISIAN-TECHNOLOGIES-CONSTITUTION.md) | Organizational constitution |
 | [QUESTIONS.md](QUESTIONS.md) | Open clarification questions and review notes |
 | [SECURITY.md](SECURITY.md) | Security policy |
+| [REUSABLE-WORKFLOWS.md](REUSABLE-WORKFLOWS.md) | Full adoption guide — which workflows to call, example `standards.yml` files, pin strategy, mode inputs |
 | [AGENTS.md](AGENTS.md) | Cross-agent maintenance guide for keeping standards code-agnostic, enforceable, and complete |
 | [.github/copilot-instructions.md](.github/copilot-instructions.md) | Copilot-facing repository law and maintenance guardrails |
 | [CODEOWNERS](CODEOWNERS) | Owner approval gate for all standards changes |
