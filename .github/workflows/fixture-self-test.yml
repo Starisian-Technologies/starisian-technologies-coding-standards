@@ -366,6 +366,36 @@ jobs:
           [ "$bad" = "error" ] || { echo "SELF-TEST FAIL: invalid enforcement_mode should produce error, got block=$bad"; exit 1; }
           echo "OK: invalid enforcement_mode correctly produces error"
 
+      - name: Frozen-lockfile logic self-test
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Mirrors the install-step condition in react/node/css/pnpm enforcement workflows.
+          # enforcement_mode=required OR (empty + legacy mode=development|production) → frozen.
+          get_frozen() {
+            local em="$1" lm="${2:-draft}"
+            if [ "$em" = "required" ] || { [ -z "$em" ] && { [ "$lm" = "development" ] || [ "$lm" = "production" ]; }; }; then
+              echo "frozen"
+            else
+              echo "plain"
+            fi
+          }
+
+          assert_frozen() {
+            local label="$1" expected="$2" actual="$3"
+            if [ "$actual" != "$expected" ]; then
+              echo "SELF-TEST FAIL: $label — expected=$expected, got=$actual"
+              exit 1
+            fi
+            echo "OK: $label — $actual"
+          }
+
+          assert_frozen "enforcement_mode=required → frozen"              "frozen" "$(get_frozen required)"
+          assert_frozen "enforcement_mode=advisory → plain"               "plain"  "$(get_frozen advisory)"
+          assert_frozen "enforcement_mode='' mode=development → frozen"   "frozen" "$(get_frozen '' development)"
+          assert_frozen "enforcement_mode='' mode=production → frozen"    "frozen" "$(get_frozen '' production)"
+          assert_frozen "enforcement_mode='' mode=draft → plain"          "plain"  "$(get_frozen '' draft)"
+
       - name: Exceptions parser — valid active exception passes
         shell: bash
         run: |
