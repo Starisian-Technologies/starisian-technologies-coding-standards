@@ -409,9 +409,10 @@ if not plugins.get('dealerdirect/phpcodesniffer-composer-installer'):
           hits=$(grep -Prn \
             --include='*.php' \
             --exclude-dir=vendor \
+            --exclude-dir=node_modules \
             '\$wpdb->(get_results|get_col|query)\s*\(' \
             . 2>/dev/null \
-            | grep -Pv 'LIMIT\s+\d' || true)
+            | grep -Pvi 'LIMIT\s+\d' || true)
           if [ -n "$hits" ]; then
             echo "::warning::PHP-SQL-003 (advisory): \$wpdb query without LIMIT — may return unbounded result sets:"$'\n'"$hits"
           fi

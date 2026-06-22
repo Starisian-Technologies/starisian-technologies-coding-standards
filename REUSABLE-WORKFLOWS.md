@@ -75,14 +75,14 @@ Confirm two things:
 ### Step 1 — Copy the caller template for your repo type
 
 Each repo type has a ready-made caller in `caller-templates/`. Copy the one
-that matches your repo into your repo's `.github/workflows/` directory, keeping
-the filename:
+that matches your repo into your repo's `.github/workflows/` directory as
+**`standards.yml`**:
 
 | Your repo type | Copy this file | Into your repo at |
 |---|---|---|
-| `wp-plugin` | `caller-templates/standards-php-wordpress.yml` | `.github/workflows/standards-php-wordpress.yml` |
-| `standalone-react` | `caller-templates/standards-react.yml` | `.github/workflows/standards-react.yml` |
-| `standalone-node` | `caller-templates/standards-node.yml` | `.github/workflows/standards-node.yml` |
+| `wp-plugin` | `caller-templates/standards-php-wordpress.yml` | `.github/workflows/standards.yml` |
+| `standalone-react` | `caller-templates/standards-react.yml` | `.github/workflows/standards.yml` |
+| `standalone-node` | `caller-templates/standards-node.yml` | `.github/workflows/standards.yml` |
 
 The template is the only file you add. You do not copy the enforcement
 workflows themselves — they live here and your caller references them.
@@ -142,7 +142,7 @@ This is the complete set of changes for a WordPress plugin repo, going from
 no enforcement to a blocking gate.
 
 **1. Copy the template.** Copy `caller-templates/standards-php-wordpress.yml`
-to `.github/workflows/standards-php-wordpress.yml` in your repo. After copying,
+to `.github/workflows/standards.yml` in your repo. After copying,
 the file looks like this:
 
 ```yaml
@@ -180,7 +180,7 @@ Nothing else needs changing.
 cannot fix in this PR, set every `enforcement_mode` to `advisory` instead,
 merge, clean up over the next week, then flip them to `required`.
 
-**4. Commit and open the PR.** Add `.github/workflows/standards-php-wordpress.yml`,
+**4. Commit and open the PR.** Add `.github/workflows/standards.yml`,
 push the branch, open the PR. The three jobs (php, css, media) run. In
 `required` mode, a `font-size: 14px` in a stylesheet fails the `css` job with
 `CSS-TYPE-001: px font sizes found` and the file and line. Fix it, push, the
