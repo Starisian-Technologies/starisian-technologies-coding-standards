@@ -76,6 +76,47 @@ jobs:
 
       - name: Parse standards exceptions (.standards/standards-exceptions.yml)
         id: exceptions
+        # YAML heredocs (<<) break GitHub's workflow parser when the body is at column 0.
+        # Script is stored in an env var; textwrap.dedent strips the YAML-induced indentation.
+        env:
+          PARSE_SCRIPT: |
+            import sys, os, textwrap
+            from datetime import date
+            try:
+                import yaml
+            except ImportError:
+                print("::error::PyYAML not available after install attempt — cannot parse exceptions file")
+                sys.exit(1)
+            today = date.today().isoformat()
+            active = []
+            expired = []
+            malformed = []
+            try:
+                with open(".standards/standards-exceptions.yml") as f:
+                    data = yaml.safe_load(f) or {}
+            except Exception as e:
+                print(f"::error::standards-exceptions.yml malformed — {e}")
+                sys.exit(1)
+            exceptions = data.get("exceptions", [])
+            for exc in exceptions:
+                required_fields = ["id", "rule", "reason", "owner", "expires", "approval"]
+                missing = [f for f in required_fields if f not in exc]
+                if missing:
+                    malformed.append(exc.get("id", "<no-id>"))
+                    continue
+                if exc["expires"] < today:
+                    expired.append(exc["id"])
+                else:
+                    active.append(exc["id"])
+                    print(f"::notice::Active exception: {exc['id']} — {exc['rule']} — expires {exc['expires']} — {exc['reason']}")
+            if expired:
+                print(f"::error::Expired exceptions found (fail-closed per STD-TOOLCHAIN-001 §8): {', '.join(expired)}")
+                sys.exit(1)
+            if malformed:
+                print(f"::error::Malformed exception entries (missing required fields): {', '.join(malformed)}")
+                sys.exit(1)
+            with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+                out.write(f"active_exceptions={','.join(active)}\n")
         shell: bash
         run: |
           set -euo pipefail
@@ -84,53 +125,7 @@ jobs:
             exit 0
           fi
           pip3 install pyyaml --quiet
-          python3 - <<'PYEOF'
-import sys
-import os
-from datetime import date
-
-try:
-    import yaml
-except ImportError:
-    print("::error::PyYAML not available after install attempt — cannot parse exceptions file")
-    sys.exit(1)
-
-today = date.today().isoformat()
-active = []
-expired = []
-malformed = []
-
-try:
-    with open(".standards/standards-exceptions.yml") as f:
-        data = yaml.safe_load(f) or {}
-except Exception as e:
-    print(f"::error::standards-exceptions.yml malformed — {e}")
-    sys.exit(1)
-
-exceptions = data.get("exceptions", [])
-for exc in exceptions:
-    required_fields = ["id", "rule", "reason", "owner", "expires", "approval"]
-    missing = [f for f in required_fields if f not in exc]
-    if missing:
-        malformed.append(exc.get("id", "<no-id>"))
-        continue
-    if exc["expires"] < today:
-        expired.append(exc["id"])
-    else:
-        active.append(exc["id"])
-        print(f"::notice::Active exception: {exc['id']} — {exc['rule']} — expires {exc['expires']} — {exc['reason']}")
-
-if expired:
-    print(f"::error::Expired exceptions found (fail-closed per STD-TOOLCHAIN-001 §8): {', '.join(expired)}")
-    sys.exit(1)
-
-if malformed:
-    print(f"::error::Malformed exception entries (missing required fields): {', '.join(malformed)}")
-    sys.exit(1)
-
-with open(os.environ["GITHUB_OUTPUT"], "a") as out:
-    out.write(f"active_exceptions={','.join(active)}\n")
-PYEOF
+          python3 -c "import textwrap, os; exec(textwrap.dedent(os.environ['PARSE_SCRIPT']))"
 
       - name: Warn on deprecated 'mode' input
         if: inputs.enforcement_mode == ''
@@ -197,11 +192,14 @@ if not plugins.get('dealerdirect/phpcodesniffer-composer-installer'):
 
       - name: Determine block behavior
         id: mode
+        env:
+          INPUT_EM: ${{ inputs.enforcement_mode }}
+          INPUT_LM: ${{ inputs.mode }}
         shell: bash
         run: |
-          # enforcement_mode takes precedence; fall back to legacy mode input when empty
-          em="${{ inputs.enforcement_mode }}"
-          lm="${{ inputs.mode }}"
+          set -euo pipefail
+          em="$INPUT_EM"
+          lm="$INPUT_LM"
           if [ "$em" = "required" ]; then
             echo "block=true" >> "$GITHUB_OUTPUT"
           elif [ "$em" = "advisory" ]; then
@@ -383,7 +381,7 @@ if not plugins.get('dealerdirect/phpcodesniffer-composer-installer'):
         shell: bash
         run: |
           set -euo pipefail
-          wp_pattern='(?i)(FROM|JOIN|INTO|UPDATE|TABLE)\s+[`'"'"'"]?wp_[a-z]'
+          wp_pattern='(?i)(FROM|JOIN|INTO|UPDATE|TABLE)\s+[`'"'"'"']?wp_[a-z]'
           hits=$(grep -Prn \
             --include='*.php' \
             --exclude-dir=vendor \
