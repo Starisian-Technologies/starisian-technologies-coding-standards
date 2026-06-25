@@ -1,0 +1,13 @@
+# Version policy for sparxstar-code-conformance reusable workflows.
+#
+# floor: the minimum contract_ref callers may pin. Calls below this version
+#        hard-fail regardless of enforcement_mode. Raise this deliberately —
+#        it is a breaking change for any caller still on the old version.
+#
+# recommended: NOT stored here. Resolved at runtime from the repo's real git
+#              tags (highest valid semver). Editing this file never touches it.
+#
+# To raise the floor: edit floor below, commit, cut a new semver tag, move v1.
+# To cut a new version: tag the merge commit (see REUSABLE-WORKFLOWS.md §Tags).
+
+floor: v1.0.0

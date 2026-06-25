@@ -1,0 +1,255 @@
+# ============================================================
+# version-drift-enforcement — STD-TOOLCHAIN-001 contract-version check
+#
+# Reusable workflow. Called by consuming repos to verify their pinned
+# contract_ref meets the floor and to report drift against the recommended.
+#
+# Three-tier result (never softened by enforcement_mode):
+#   contract_ref == recommended   → pass, silent
+#   contract_ref < recommended,
+#       but >= floor              → pass + ::warning:: annotation
+#   contract_ref < floor          → hard fail
+#
+# Drift record: on each run a JSON record is committed to drift/ in this repo
+# (using contract-sync, the confirmed write app) so every consumer's version
+# state is visible in one place.
+#
+# Caller example (.github/workflows/standards.yml):
+#
+#   jobs:
+#     version-check:
+#       uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/version-drift-enforcement.yml@v1
+#       with:
+#         contract_ref: v1           # the ref the caller pins its enforcement jobs to
+#       secrets:
+#         COMPOSER_RESOLVER_PRIVATE_KEY: ${{ secrets.COMPOSER_RESOLVER_PRIVATE_KEY }}
+#         CONTRACT_SYNC_PRIVATE_KEY:     ${{ secrets.CONTRACT_SYNC_PRIVATE_KEY }}
+# ============================================================
+
+name: Version drift enforcement (STD-TOOLCHAIN-001)
+
+on:
+  workflow_call:
+    inputs:
+      contract_ref:
+        description: >
+          The ref the calling repo pins its enforcement workflow calls to
+          (e.g. v1, v1.0.0). Must resolve to an existing tag. Hard-fails
+          if the ref does not exist or falls below the floor in
+          config/version-policy.yml.
+        required: true
+        type: string
+      calling_repo:
+        description: >
+          Full repository name of the caller (owner/repo). Defaults to
+          github.repository when omitted — pass explicitly if the caller
+          needs to override (rare).
+        required: false
+        type: string
+        default: ''
+      write_drift_record:
+        description: >
+          Whether to commit the drift record to drift/ in this repo using
+          contract-sync. Set false to skip the write (advisory/read-only runs).
+          Default true.
+        required: false
+        type: boolean
+        default: true
+    secrets:
+      COMPOSER_RESOLVER_PRIVATE_KEY:
+        description: Private key for composer-resolver GitHub App (read token — checkout this repo).
+        required: true
+      CONTRACT_SYNC_PRIVATE_KEY:
+        description: Private key for contract-sync GitHub App (write token — commit drift record). Required when write_drift_record is true.
+        required: false
+
+jobs:
+  check:
+    name: Contract version drift check
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── READ: check out this repo to read config/version-policy.yml and tags ──
+      - name: Mint read token (composer-resolver)
+        id: read-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.COMPOSER_RESOLVER_CLIENT_ID }}
+          private-key: ${{ secrets.COMPOSER_RESOLVER_PRIVATE_KEY }}
+          owner: Starisian-Technologies
+          repositories: sparxstar-code-conformance
+
+      - name: Checkout sparxstar-code-conformance (tags + config)
+        uses: actions/checkout@v4
+        with:
+          repository: Starisian-Technologies/sparxstar-code-conformance
+          token: ${{ steps.read-token.outputs.token }}
+          fetch-depth: 0    # full history so all tags are present
+
+      # ── RESOLVE: floor from config, recommended from real tags ──
+      - name: Resolve floor, recommended, and validate requested ref
+        id: versions
+        env:
+          CONTRACT_REF_INPUT: ${{ inputs.contract_ref }}
+          CALLING_REPO_INPUT: ${{ inputs.calling_repo }}
+          GITHUB_REPOSITORY_CALLER: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # ---------- helpers ----------
+          # Normalise a ref to bare semver (strip leading v, refs/tags/).
+          strip_v() { echo "${1#refs/tags/}" | sed 's/^v//'; }
+
+          # Compare two semver strings (MAJOR.MINOR.PATCH only).
+          # Returns 0 if $1 < $2, 1 otherwise.
+          semver_lt() {
+            local a b
+            a=$(strip_v "$1")
+            b=$(strip_v "$2")
+            # Use sort -V; if a comes first it is lower.
+            [ "$(printf '%s\n%s\n' "$a" "$b" | sort -V | head -1)" = "$a" ] && [ "$a" != "$b" ]
+          }
+
+          # Validate a string looks like vMAJOR, vMAJOR.MINOR, or vMAJOR.MINOR.PATCH
+          # (anchored — no trailing garbage).
+          is_semver_tag() {
+            echo "$1" | grep -qE '^v[0-9]+(\.[0-9]+(\.[0-9]+)?)?$'
+          }
+
+          # ---------- floor from config ----------
+          FLOOR=$(grep -E '^floor:' config/version-policy.yml | awk '{print $2}' | tr -d '"' | tr -d "'")
+          if [ -z "$FLOOR" ]; then
+            echo "::error::config/version-policy.yml missing 'floor:' key"
+            exit 1
+          fi
+          echo "floor=$FLOOR" >> "$GITHUB_OUTPUT"
+
+          # ---------- recommended: highest semver tag on this repo ----------
+          # List all tags, keep only those matching semver, sort, take highest.
+          RECOMMENDED=$(git tag --list | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1 || true)
+          if [ -z "$RECOMMENDED" ]; then
+            echo "::warning::No semver tags found on sparxstar-code-conformance — skipping recommended check"
+            RECOMMENDED="$FLOOR"
+          fi
+          echo "recommended=$RECOMMENDED" >> "$GITHUB_OUTPUT"
+
+          # ---------- validate requested ref against real tags ----------
+          RAW_REF="$CONTRACT_REF_INPUT"
+          # Normalise: strip refs/tags/ prefix if present
+          REQUESTED="${RAW_REF#refs/tags/}"
+
+          # Must match semver pattern (anchored)
+          if ! is_semver_tag "$REQUESTED"; then
+            REAL_TAGS=$(git tag --list | grep -E '^v[0-9]+(\.[0-9]+(\.[0-9]+)?)?$' | sort -V | tr '\n' ' ')
+            echo "::error::contract_ref '${REQUESTED}' is not a valid semver tag (expected vMAJOR, vMAJOR.MINOR, or vMAJOR.MINOR.PATCH). Existing tags: ${REAL_TAGS}"
+            exit 1
+          fi
+
+          # Must exist as a real tag
+          if ! git tag --list | grep -qxF "$REQUESTED"; then
+            REAL_TAGS=$(git tag --list | grep -E '^v[0-9]+(\.[0-9]+(\.[0-9]+)?)?$' | sort -V | tr '\n' ' ')
+            echo "::error::contract_ref '${REQUESTED}' does not resolve to an existing tag. Existing tags: ${REAL_TAGS}"
+            exit 1
+          fi
+
+          echo "requested=$REQUESTED" >> "$GITHUB_OUTPUT"
+
+          # ---------- resolve calling repo ----------
+          if [ -n "$CALLING_REPO_INPUT" ]; then
+            CALLER="$CALLING_REPO_INPUT"
+          else
+            CALLER="$GITHUB_REPOSITORY_CALLER"
+          fi
+          echo "calling_repo=$CALLER" >> "$GITHUB_OUTPUT"
+
+          # ---------- three-tier check ----------
+          REQUESTED_BARE=$(strip_v "$REQUESTED")
+          RECOMMENDED_BARE=$(strip_v "$RECOMMENDED")
+          FLOOR_BARE=$(strip_v "$FLOOR")
+
+          TIER="ok"
+          if [ "$REQUESTED_BARE" = "$RECOMMENDED_BARE" ]; then
+            TIER="ok"
+            echo "::notice::Contract version ${REQUESTED} matches recommended — OK"
+          elif semver_lt "$REQUESTED_BARE" "$FLOOR_BARE"; then
+            TIER="fail"
+          elif semver_lt "$REQUESTED_BARE" "$RECOMMENDED_BARE"; then
+            TIER="warn"
+          fi
+
+          echo "tier=$TIER" >> "$GITHUB_OUTPUT"
+
+      # ── TIER: warning annotation ──
+      - name: Emit upgrade warning
+        if: steps.versions.outputs.tier == 'warn'
+        env:
+          REQUESTED:    ${{ steps.versions.outputs.requested }}
+          RECOMMENDED:  ${{ steps.versions.outputs.recommended }}
+          FLOOR:        ${{ steps.versions.outputs.floor }}
+          CALLING_REPO: ${{ steps.versions.outputs.calling_repo }}
+        shell: bash
+        run: |
+          echo "::warning::${CALLING_REPO} is on contract ${REQUESTED} (recommended ${RECOMMENDED}, floor ${FLOOR}). Please upgrade — see REUSABLE-WORKFLOWS.md §Versioning."
+
+      # ── TIER: hard fail ──
+      - name: Hard fail — below floor
+        if: steps.versions.outputs.tier == 'fail'
+        env:
+          REQUESTED:    ${{ steps.versions.outputs.requested }}
+          FLOOR:        ${{ steps.versions.outputs.floor }}
+          RECOMMENDED:  ${{ steps.versions.outputs.recommended }}
+          CALLING_REPO: ${{ steps.versions.outputs.calling_repo }}
+        shell: bash
+        run: |
+          echo "::error::${CALLING_REPO} is on contract ${REQUESTED} which is below the minimum floor ${FLOOR} (recommended ${RECOMMENDED}). Upgrade required — STD-TOOLCHAIN-001 §floor."
+          exit 1
+
+      # ── DRIFT RECORD: write JSON to drift/ in this repo via contract-sync ──
+      - name: Mint write token (contract-sync)
+        id: write-token
+        if: inputs.write_drift_record
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.CONTRACT_SYNC_CLIENT_ID }}
+          private-key: ${{ secrets.CONTRACT_SYNC_PRIVATE_KEY }}
+          owner: Starisian-Technologies
+          repositories: sparxstar-code-conformance
+
+      - name: Commit drift record
+        if: inputs.write_drift_record
+        env:
+          GH_TOKEN:     ${{ steps.write-token.outputs.token }}
+          REQUESTED:    ${{ steps.versions.outputs.requested }}
+          RECOMMENDED:  ${{ steps.versions.outputs.recommended }}
+          FLOOR:        ${{ steps.versions.outputs.floor }}
+          TIER:         ${{ steps.versions.outputs.tier }}
+          CALLING_REPO: ${{ steps.versions.outputs.calling_repo }}
+          RUN_URL:      ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_TS:       ${{ github.event.head_commit.timestamp }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Slug the caller repo name for the filename (replace / and other non-alphanum with -)
+          SLUG=$(echo "$CALLING_REPO" | tr '/' '-' | tr -cd '[:alnum:]-')
+
+          RECORD_PATH="drift/${SLUG}.json"
+          mkdir -p drift
+
+          # Build JSON record (no jq dependency — printf to avoid heredoc indentation issues)
+          GAP=$([ "$REQUESTED" = "$RECOMMENDED" ] && echo "none" || echo "${REQUESTED} -> ${RECOMMENDED}")
+          printf '{\n  "calling_repo": "%s",\n  "contract_ref": "%s",\n  "recommended":  "%s",\n  "floor":        "%s",\n  "gap":          "%s",\n  "tier":         "%s",\n  "run_url":      "%s",\n  "recorded_at":  "%s"\n}\n' \
+            "$CALLING_REPO" "$REQUESTED" "$RECOMMENDED" "$FLOOR" "$GAP" "$TIER" "$RUN_URL" "$RUN_TS" \
+            > "$RECORD_PATH"
+
+          git config user.name  "sparxstar-contract-sync[bot]"
+          git config user.email "contract-sync@starisian.com"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/Starisian-Technologies/sparxstar-code-conformance.git"
+
+          git add "$RECORD_PATH"
+          git diff --cached --quiet && echo "drift record unchanged — no commit needed" && exit 0
+          git commit -m "chore: drift record — ${CALLING_REPO} on ${REQUESTED} (recommended ${RECOMMENDED})"
+          # Pull rebase to handle concurrent drift runs on main, then push.
+          git pull --rebase origin main
+          git push origin HEAD:main
