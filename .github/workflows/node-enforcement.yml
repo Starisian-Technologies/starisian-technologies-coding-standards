@@ -103,11 +103,21 @@ jobs:
                 if missing:
                     malformed.append(exc.get("id", "<no-id>"))
                     continue
-                if exc["expires"] < today:
+                expires = exc["expires"]
+                if expires is None:
+                    malformed.append(exc.get("id", "<no-id>"))
+                    continue
+                if not isinstance(expires, str):
+                    if hasattr(expires, "isoformat"):
+                        expires = expires.isoformat()
+                    else:
+                        malformed.append(exc.get("id", "<no-id>"))
+                        continue
+                if expires < today:
                     expired.append(exc["id"])
                 else:
                     active.append(exc["id"])
-                    print(f"::notice::Active exception: {exc['id']} — {exc['rule']} — expires {exc['expires']} — {exc['reason']}")
+                    print(f"::notice::Active exception: {exc['id']} — {exc['rule']} — expires {expires} — {exc['reason']}")
             if expired:
                 print(f"::error::Expired exceptions (fail-closed per STD-TOOLCHAIN-001 §8): {', '.join(expired)}")
                 sys.exit(1)
