@@ -43,11 +43,5 @@ jobs:
       enforcement_mode: required
       profile_version: v1
 
-  review:
-    if: github.event_name == 'pull_request' && secrets.ANTHROPIC_API_KEY != ''
-    permissions:
-      contents: read
-      pull-requests: write
-    uses: Starisian-Technologies/sparxstar-claude-pr-review/.github/workflows/claude-pr-review.yml@v1
-    secrets:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  # Optional: add a PR review job in the consuming repo if desired.
+  # This template intentionally omits third-party review tooling to keep the standard tool-agnostic.
