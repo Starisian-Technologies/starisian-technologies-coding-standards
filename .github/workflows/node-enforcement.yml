@@ -97,7 +97,13 @@ jobs:
                 print(f"::error::standards-exceptions.yml malformed — {e}")
                 sys.exit(1)
             exceptions = data.get("exceptions", [])
+            if not isinstance(exceptions, list):
+                print("::error::standards-exceptions.yml malformed — 'exceptions' must be a list")
+                sys.exit(1)
             for exc in exceptions:
+                if not isinstance(exc, dict):
+                    malformed.append("<no-id>")
+                    continue
                 required_fields = ["id", "rule", "reason", "owner", "expires", "approval"]
                 missing = [f for f in required_fields if f not in exc]
                 if missing:
