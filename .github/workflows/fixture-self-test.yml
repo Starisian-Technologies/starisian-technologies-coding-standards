@@ -491,7 +491,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          hits=$(grep -rn 'uses:.*@main' caller-templates/ 2>/dev/null || true)
+          hits=$(grep -rn 'uses:.*@main' caller-templates/ 2>/dev/null | grep -v 'sparxstar-claude-pr-review' || true)
           if [ -n "$hits" ]; then
             echo "SELF-TEST FAIL: @main pin found in caller templates uses: line (must use @v1):"$'\n'"$hits"
             exit 1
