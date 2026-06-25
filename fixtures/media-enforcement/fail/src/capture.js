@@ -3,13 +3,13 @@
  *
  * Issues:
  * - Direct new MediaRecorder() — must use approved SDK
- * - getUserMedia without required audio constraints
+ * - getUserMedia missing required audio constraints
  */
 
 const startButton = document.getElementById('start');
 
 startButton?.addEventListener('click', async () => {
-  // MEDIA-CONSTRAINTS-001: no required audio constraints
+  // MEDIA-CONSTRAINTS-001: missing required audio constraint
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: true,
     video: false,
