@@ -5,7 +5,7 @@
 # Three independent axes — move them independently:
 #   1. Workflow ref  (@v1)           — the executable. Bugfixes bump this only.
 #   2. profile_version (v1)         — the dependency/config contract. Bump to adopt new required surface.
-#   3. enforcement_mode (required)  — fail-closed. advisory = warn-only (exceptions file is optional in both modes).
+#   3. enforcement_mode (gate)  — fail-closed. advisory = warn-only (exceptions file is optional in both modes).
 #
 name: Starisian Standards
 
@@ -19,14 +19,14 @@ jobs:
     if: ${{ hashFiles('package.json') != '' }}
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/pnpm-enforcement.yml@v1
     with:
-      enforcement_mode: required
+      enforcement_mode: gate
 
   php:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/php-enforcement.yml@v1
     with:
       repo_type: wp-plugin
       profile_version: v1
-      enforcement_mode: required
+      enforcement_mode: gate
       php-version: '8.3'
       phpstan-level: '5'
 
@@ -35,12 +35,12 @@ jobs:
     with:
       repo_type: wp-plugin
       profile_version: v1
-      enforcement_mode: required
+      enforcement_mode: gate
 
   media:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/media-enforcement.yml@v1
     with:
-      enforcement_mode: required
+      enforcement_mode: gate
       profile_version: v1
 
   review:

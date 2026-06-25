@@ -39,7 +39,7 @@ on:
         type: string
         default: v1
       enforcement_mode:
-        description: 'required (fail-closed) | advisory (warn-only) | (empty = legacy mode fallback)'
+        description: 'gate (fail-closed) | advisory (warn-only) | (empty = legacy mode fallback)'
         required: false
         type: string
         default: ''
@@ -132,7 +132,7 @@ jobs:
         if: inputs.enforcement_mode == ''
         shell: bash
         run: |
-          echo "::warning::DEPRECATED: 'mode' input will be removed 2027-01-01 — migrate to 'enforcement_mode: required | advisory' (STD-TOOLCHAIN-001 §3)"
+          echo "::warning::DEPRECATED: 'mode' input will be removed 2027-01-01 — migrate to 'enforcement_mode: gate | advisory' (STD-TOOLCHAIN-001 §3)"
 
       - name: Determine block behavior
         id: mode
@@ -141,7 +141,7 @@ jobs:
           # enforcement_mode takes precedence; fall back to legacy mode input when empty
           em="${{ inputs.enforcement_mode }}"
           lm="${{ inputs.mode }}"
-          if [ "$em" = "required" ]; then
+          if [ "$em" = "gate" ]; then
             echo "block=true" >> "$GITHUB_OUTPUT"
           elif [ "$em" = "advisory" ]; then
             echo "block=false" >> "$GITHUB_OUTPUT"
@@ -151,11 +151,11 @@ jobs:
               draft)                    echo "block=false" >> "$GITHUB_OUTPUT" ;;
               development|production)   echo "block=true"  >> "$GITHUB_OUTPUT" ;;
               *)
-                echo "::error::Unknown mode '$lm' — migrate to enforcement_mode: required | advisory (STD-TOOLCHAIN-001 §3)"
+                echo "::error::Unknown mode '$lm' — migrate to enforcement_mode: gate | advisory (STD-TOOLCHAIN-001 §3)"
                 exit 1 ;;
             esac
           else
-            echo "::error::Unknown enforcement_mode '$em' — expected required | advisory (STD-TOOLCHAIN-001 §3)"
+            echo "::error::Unknown enforcement_mode '$em' — expected gate | advisory (STD-TOOLCHAIN-001 §3)"
             exit 1
           fi
 

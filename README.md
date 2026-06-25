@@ -18,7 +18,7 @@ Every product repo enforces these standards by calling the reusable workflows in
 
 **Step 2.** Copy the template verbatim into `.github/workflows/standards.yml` in your product repo.
 
-**Step 3.** Set `enforcement_mode: required` to fail-close the checks, or `enforcement_mode: advisory` for warn-only while onboarding.
+**Step 3.** Set `enforcement_mode: gate` to fail-close the checks, or `enforcement_mode: advisory` for warn-only while onboarding.
 
 Full adoption guide: **[REUSABLE-WORKFLOWS.md](REUSABLE-WORKFLOWS.md)**
 

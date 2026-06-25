@@ -29,7 +29,7 @@ jobs:
   pnpm:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/pnpm-enforcement.yml@v1
     with:
-      enforcement_mode: required
+      enforcement_mode: gate
 
   # Additional domain workflows (PHP, JS, CSS, formatting, etc.) will be added
   # to this repository over time. Add their jobs here once they exist under
@@ -96,7 +96,7 @@ Open the file you just copied. Two things must be set correctly:
    recommendation (immutable; never moves). Do not change it to `@main`.
 2. **`enforcement_mode` is set to `advisory` for new consumers.** New repos
    start advisory (warn-only) so onboarding is never blocked by a gate the
-   repo does not yet pass. Switch to `required` only when all violations are
+   repo does not yet pass. Switch to `gate` only when all violations are
    resolved — see "Advisory first, gate when clean" below.
 
 Do not leave `enforcement_mode` unset. The empty value falls back to a
@@ -129,7 +129,7 @@ open a pull request. The enforcement workflow runs as a check on the PR.
 
 - In `advisory` mode: the check passes, and any violations appear as warning
   annotations in the PR.
-- In `required` mode: the check fails the PR if any violation is found, with
+- In `gate` mode: the check fails the PR if any violation is found, with
   the rule id and the offending file/line in the log.
 
 You are now enforcing. That is the whole adoption.
@@ -156,37 +156,37 @@ jobs:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/php-enforcement.yml@v1
     with:
       repo_type: wp-plugin
-      enforcement_mode: required
+      enforcement_mode: gate
     secrets: inherit
   css:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/css-enforcement.yml@v1
     with:
       repo_type: wp-plugin
-      enforcement_mode: required
+      enforcement_mode: gate
     secrets: inherit
   media:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/media-enforcement.yml@v1
     with:
       repo_type: wp-plugin
-      enforcement_mode: required
+      enforcement_mode: gate
     secrets: inherit
 ```
 
 **2. Update pins and set advisory mode.** Update every `uses:` line to end in
 `@v1.0.0`. Set every `enforcement_mode` to `advisory` for a new consumer —
-do not flip to `required` until violations are zero (see "Advisory first,
+do not flip to `gate` until violations are zero (see "Advisory first,
 gate when clean" below). Set `repo_type` to `wp-plugin` everywhere.
 
 **3. Clean up violations in advisory mode.** With `enforcement_mode: advisory`,
 merge the caller file, let the gate run, and fix all reported violations.
-Once violations are zero, switch each gate to `enforcement_mode: required`
+Once violations are zero, switch each gate to `enforcement_mode: gate`
 in a follow-up PR — that is the deliberate, recorded flip to blocking.
 
 **4. Commit and open the PR.** Add `.github/workflows/standards.yml`,
 push the branch, open the PR. The three jobs (php, css, media) run. In
 `advisory` mode, a `font-size: 14px` in a stylesheet produces a warning
 annotation — the job still passes so the PR is not blocked. Resolve all
-warnings, then switch to `enforcement_mode: required` in a follow-up PR.
+warnings, then switch to `enforcement_mode: gate` in a follow-up PR.
 
 That is a wp-plugin repo fully adopted: one file added, pinned to `@v1.0.0`,
 advisory mode for onboarding, blocking gate once clean.
@@ -212,7 +212,7 @@ New consumers set `enforcement_mode: advisory` on every gate. Advisory runs
 report violations as warnings but never block merge, so wiring a new gate
 cannot stall the team.
 
-Switch a gate to `enforcement_mode: required` (blocking) only when **all
+Switch a gate to `enforcement_mode: gate` (blocking) only when **all
 three** of the following are true:
 
 1. **Zero violations on the most recent advisory run.** Do not flip with
@@ -222,9 +222,9 @@ three** of the following are true:
 3. **The switch is a deliberate, recorded decision.** The repo is declaring
    "we now conform and intend to stay conforming."
 
-Once a gate is set to `required`, a violation blocks merge. That is the
+Once a gate is set to `gate`, a violation blocks merge. That is the
 point — it is the commitment that the repo stays clean. Do not switch to
-`required` as a goal in itself; switch when the repo is provably clean and
+`gate` as a goal in itself; switch when the repo is provably clean and
 you want to keep it that way.
 
 **The platform expectation: start advisory, earn gate.** A gate flipped to
@@ -245,13 +245,13 @@ jobs:
   pnpm:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/pnpm-enforcement.yml@v1
     with:
-      enforcement_mode: required
+      enforcement_mode: gate
   php:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/php-enforcement.yml@v1
     with:
       repo_type: wp-plugin
       profile_version: v1
-      enforcement_mode: required
+      enforcement_mode: gate
       phpstan-level: '5'
 ```
 
@@ -267,23 +267,23 @@ jobs:
   pnpm:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/pnpm-enforcement.yml@v1
     with:
-      enforcement_mode: required
+      enforcement_mode: gate
   react:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/react-enforcement.yml@v1
     with:
       repo_type: standalone-react
       profile_version: v1
-      enforcement_mode: required
+      enforcement_mode: gate
   css:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/css-enforcement.yml@v1
     with:
       repo_type: standalone-react
       profile_version: v1
-      enforcement_mode: required
+      enforcement_mode: gate
   media:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/media-enforcement.yml@v1
     with:
-      enforcement_mode: required
+      enforcement_mode: gate
       profile_version: v1
 ```
 
@@ -299,17 +299,17 @@ jobs:
   pnpm:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/pnpm-enforcement.yml@v1
     with:
-      enforcement_mode: required
+      enforcement_mode: gate
   node:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/node-enforcement.yml@v1
     with:
       repo_type: standalone-node
       profile_version: v1
-      enforcement_mode: required
+      enforcement_mode: gate
   media:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/media-enforcement.yml@v1
     with:
-      enforcement_mode: required
+      enforcement_mode: gate
       profile_version: v1
 ```
 

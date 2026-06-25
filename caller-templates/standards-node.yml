@@ -14,7 +14,7 @@ jobs:
   pnpm:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/pnpm-enforcement.yml@v1
     with:
-      enforcement_mode: required
+      enforcement_mode: gate
 
   node:
     needs: pnpm
@@ -22,11 +22,11 @@ jobs:
     with:
       repo_type: standalone-node
       profile_version: v1
-      enforcement_mode: required
+      enforcement_mode: gate
       node-version: '22'
 
   media:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/media-enforcement.yml@v1
     with:
-      enforcement_mode: required
+      enforcement_mode: gate
       profile_version: v1

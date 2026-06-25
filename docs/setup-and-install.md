@@ -172,7 +172,7 @@ In advisory mode, violations are reported as warnings in the Actions UI but
 **never block merge**. This prevents a consuming repo from being held hostage
 by a gate it does not yet pass.
 
-### Switching to `enforcement_mode: required`
+### Switching to `enforcement_mode: gate`
 
 Switch a gate from advisory to required (blocking) only when **all three** of
 the following are true:

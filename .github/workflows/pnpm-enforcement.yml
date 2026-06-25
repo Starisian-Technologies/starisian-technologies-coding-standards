@@ -13,7 +13,7 @@
 #     pnpm:
 #       uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/pnpm-enforcement.yml@v1
 #       with:
-#         enforcement_mode: required   # required | advisory
+#         enforcement_mode: required   # gate | advisory
 
 name: pnpm enforcement (ADR-017)
 
@@ -21,7 +21,7 @@ on:
   workflow_call:
     inputs:
       enforcement_mode:
-        description: 'required (fail-closed) | advisory (warn-only) | (empty = legacy mode fallback)'
+        description: 'gate (fail-closed) | advisory (warn-only) | (empty = legacy mode fallback)'
         required: false
         type: string
         default: ''
@@ -44,7 +44,7 @@ jobs:
         if: inputs.enforcement_mode == ''
         shell: bash
         run: |
-          echo "::warning::DEPRECATED: 'mode' input will be removed 2027-01-01 — migrate to 'enforcement_mode: required | advisory' (STD-TOOLCHAIN-001 §3)"
+          echo "::warning::DEPRECATED: 'mode' input will be removed 2027-01-01 — migrate to 'enforcement_mode: gate | advisory' (STD-TOOLCHAIN-001 §3)"
 
       # Sanitize inputs through env vars (CodeQL: never interpolate workflow_call inputs directly into shell).
       - name: Determine block behavior
@@ -57,7 +57,7 @@ jobs:
           set -euo pipefail
           em="$INPUT_EM"
           lm="$INPUT_LM"
-          if [ "$em" = "required" ]; then
+          if [ "$em" = "gate" ]; then
             echo "block=true" >> "$GITHUB_OUTPUT"
           elif [ "$em" = "advisory" ]; then
             echo "block=false" >> "$GITHUB_OUTPUT"
@@ -67,11 +67,11 @@ jobs:
               draft)                    echo "block=false" >> "$GITHUB_OUTPUT" ;;
               development|production)   echo "block=true"  >> "$GITHUB_OUTPUT" ;;
               *)
-                echo "::error::Unknown mode '$lm' — migrate to enforcement_mode: required | advisory (STD-TOOLCHAIN-001 §3)"
+                echo "::error::Unknown mode '$lm' — migrate to enforcement_mode: gate | advisory (STD-TOOLCHAIN-001 §3)"
                 exit 1 ;;
             esac
           else
-            echo "::error::Unknown enforcement_mode '$em' — expected required | advisory (STD-TOOLCHAIN-001 §3)"
+            echo "::error::Unknown enforcement_mode '$em' — expected gate | advisory (STD-TOOLCHAIN-001 §3)"
             exit 1
           fi
 
@@ -149,7 +149,7 @@ jobs:
           em="$INPUT_EM"
           lm="$INPUT_LM"
           if [ -f pnpm-lock.yaml ]; then
-            if [ "$em" = "required" ] || { [ -z "$em" ] && { [ "$lm" = "development" ] || [ "$lm" = "production" ]; }; }; then
+            if [ "$em" = "gate" ] || { [ -z "$em" ] && { [ "$lm" = "development" ] || [ "$lm" = "production" ]; }; }; then
               pnpm install --frozen-lockfile
             else
               pnpm install

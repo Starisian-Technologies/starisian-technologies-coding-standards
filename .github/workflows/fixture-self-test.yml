@@ -327,7 +327,7 @@ jobs:
           # Helper: inline the same case logic as the enforcement workflows
           get_block() {
             local em="$1" lm="${2:-development}"
-            if [ "$em" = "required" ]; then
+            if [ "$em" = "gate" ]; then
               echo "true"
             elif [ "$em" = "advisory" ]; then
               echo "false"
@@ -374,7 +374,7 @@ jobs:
           # enforcement_mode=required OR (empty + legacy mode=development|production) → frozen.
           get_frozen() {
             local em="$1" lm="${2:-draft}"
-            if [ "$em" = "required" ] || { [ -z "$em" ] && { [ "$lm" = "development" ] || [ "$lm" = "production" ]; }; }; then
+            if [ "$em" = "gate" ] || { [ -z "$em" ] && { [ "$lm" = "development" ] || [ "$lm" = "production" ]; }; }; then
               echo "frozen"
             else
               echo "plain"

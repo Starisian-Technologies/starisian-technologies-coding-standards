@@ -14,7 +14,7 @@ jobs:
   pnpm:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/pnpm-enforcement.yml@v1
     with:
-      enforcement_mode: required
+      enforcement_mode: gate
 
   react:
     needs: pnpm
@@ -22,7 +22,7 @@ jobs:
     with:
       repo_type: standalone-react
       profile_version: v1
-      enforcement_mode: required
+      enforcement_mode: gate
       node-version: '22'
       bundle-size-limit-kb: 150
 
@@ -32,10 +32,10 @@ jobs:
     with:
       repo_type: standalone-react
       profile_version: v1
-      enforcement_mode: required
+      enforcement_mode: gate
 
   media:
     uses: Starisian-Technologies/sparxstar-code-conformance/.github/workflows/media-enforcement.yml@v1
     with:
-      enforcement_mode: required
+      enforcement_mode: gate
       profile_version: v1
