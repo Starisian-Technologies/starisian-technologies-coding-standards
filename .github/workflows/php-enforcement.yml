@@ -213,11 +213,12 @@ jobs:
       - name: Mint read token (composer-resolver)
         if: hashFiles('composer.json') != ''
         id: read-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ vars.COMPOSER_RESOLVER_CLIENT_ID }}
+          client-id: ${{ vars.COMPOSER_RESOLVER_CLIENT_ID }}
           private-key: ${{ secrets.COMPOSER_RESOLVER_PRIVATE_KEY }}
           owner: Starisian-Technologies
+          repositories: sparxstar-code-conformance
 
       - name: Configure Composer auth for private dependencies
         if: hashFiles('composer.json') != ''
