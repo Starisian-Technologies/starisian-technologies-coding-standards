@@ -295,13 +295,15 @@ jobs:
 
       - name: PHP-LINT-001 — PHPCS (WordPress VIP + PSR-12)
         if: hashFiles('phpcs.xml') != '' || hashFiles('phpcs.xml.dist') != '' || hashFiles('.phpcs.xml') != ''
+        env:
+          MODE_BLOCK: ${{ steps.mode.outputs.block }}
         shell: bash
         run: |
           set -euo pipefail
           phpcs_exit=0
           phpcs --report=full 2>&1 || phpcs_exit=$?
           if [ "$phpcs_exit" -ne 0 ]; then
-            if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
+            if [ "$MODE_BLOCK" = "true" ]; then
               echo "::error::PHP-LINT-001: PHPCS violations found (exit $phpcs_exit)"
               exit 1
             else
