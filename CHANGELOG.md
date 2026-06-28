@@ -9,4 +9,4 @@ The format is based on Keep a Changelog and this repository follows Semantic Ver
 ### Added
 
 - Repository governance baseline artifacts: CONTRIBUTING, SUPPORT, CODE_OF_CONDUCT, issue templates, and PR template.
-- Repository-level CI checks for dependency review and secret scanning.
+- Repository-level CI check for dependency review.

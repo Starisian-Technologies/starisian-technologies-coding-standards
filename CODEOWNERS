@@ -11,7 +11,6 @@
 # Security-sensitive files
 /SECURITY.md @MaximillianGroup
 /.github/workflows/dependency-review.yml @MaximillianGroup
-/.github/workflows/secret-scanning.yml @MaximillianGroup
 
 # CI/CD enforcement workflows
 /.github/workflows/** @MaximillianGroup
