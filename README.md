@@ -43,6 +43,9 @@ The standards are split into a language-agnostic handbook and per-language imple
 | [docs/media-upload-standard.md](docs/media-upload-standard.md) | Audio, video, and TUS upload — capture constraints, codec limits, chunked upload, atomicity, server-side processing |
 | [docs/enforcement-matrix.md](docs/enforcement-matrix.md) | Enforcement matrix — maps every rule to the tool that enforces it and the CI stage where it runs |
 | [docs/STD-TOOLCHAIN-001.md](docs/STD-TOOLCHAIN-001.md) | Toolchain standard — three-axis versioning, profile definitions, exception process, bucket classification |
+| [docs/architecture-overview.md](docs/architecture-overview.md) | Architecture boundaries, delivery flow, and repository non-goals |
+| [docs/ci-cd-operations.md](docs/ci-cd-operations.md) | CI/CD operational expectations and release readiness checks |
+| [docs/deployment-upgrade-rollback.md](docs/deployment-upgrade-rollback.md) | Deployment model, consumer upgrade path, and rollback procedure |
 
 ### Root — Reference Documents
 
@@ -52,12 +55,18 @@ The standards are split into a language-agnostic handbook and per-language imple
 | [CI-Enforcement-Matrix.md](CI-Enforcement-Matrix.md) | Org-generic CI rule-status matrix (`ENFORCED`, `WARN`, `SPECIFIED`, `REFERENCE`, `RESERVED`). Product-specific rules live in product repos |
 | [THE-STARISIAN-TECHNOLOGIES-CONSTITUTION.md](THE-STARISIAN-TECHNOLOGIES-CONSTITUTION.md) | Organizational constitution |
 | [QUESTIONS.md](QUESTIONS.md) | Open clarification questions and review notes |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contributor workflow, scope boundaries, and validation requirements |
+| [SUPPORT.md](SUPPORT.md) | Support channels, issue intake guidance, and response targets |
+| [CHANGELOG.md](CHANGELOG.md) | Release-facing change history and unreleased changes |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Contributor behavior and enforcement expectations |
 | [SECURITY.md](SECURITY.md) | Security policy |
 | [REUSABLE-WORKFLOWS.md](REUSABLE-WORKFLOWS.md) | Full adoption guide — which workflows to call, example `standards.yml` files, pin strategy, mode inputs |
 | [docs/setup-and-install.md](docs/setup-and-install.md) | Setup & Install for `version-drift-enforcement` — prerequisites, inputs, secrets, copy-paste caller block |
 | [AGENTS.md](AGENTS.md) | Cross-agent maintenance guide for keeping standards code-agnostic, enforceable, and complete |
 | [.github/copilot-instructions.md](.github/copilot-instructions.md) | Copilot-facing repository law and maintenance guardrails |
 | [CODEOWNERS](CODEOWNERS) | Owner approval gate for all standards changes |
+| [.github/pull_request_template.md](.github/pull_request_template.md) | Required PR review metadata (validation, risk, migration, rollback) |
+| [.github/ISSUE_TEMPLATE/](.github/ISSUE_TEMPLATE) | Structured issue intake for bug, feature, security, regression, and docs reports |
 
 ---
 

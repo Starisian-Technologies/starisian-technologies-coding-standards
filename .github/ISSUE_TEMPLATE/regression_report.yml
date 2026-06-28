@@ -1,0 +1,29 @@
+name: Regression report
+description: Report behavior that previously worked and now fails.
+title: "[Regression]: "
+labels: ["regression", "triage"]
+body:
+  - type: textarea
+    id: regression
+    attributes:
+      label: What regressed?
+    validations:
+      required: true
+  - type: input
+    id: last-good
+    attributes:
+      label: Last known good version or commit
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Production impact
+    validations:
+      required: true
