@@ -265,11 +265,17 @@ jobs:
           INPUT_PHPSTAN_LEVEL: ${{ inputs['phpstan-level'] }}
         shell: bash
         run: |
+          set -euo pipefail
           level="$INPUT_PHPSTAN_LEVEL"
           if ! [[ "$level" =~ ^[0-9]+$ ]] || [ "$level" -lt 5 ]; then
             echo "::error::phpstan-level must be an integer >= 5 (got '$level')"
             exit 1
+          fi
           echo "PHPSTAN_LEVEL=$level" >> "$GITHUB_ENV"
+
+      - name: Install Composer dependencies
+        if: hashFiles('composer.json') != ''
+        shell: bash
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
       - name: PHP-STRICT-001 — declare(strict_types=1) present in all PHP files
