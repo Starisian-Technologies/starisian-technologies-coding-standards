@@ -1,0 +1,101 @@
+# ============================================================
+# Release automation
+# Manually cuts a new immutable vX.Y.Z tag from main, moves the
+# floating major tag (vN) to match, and publishes a GitHub Release.
+# Matches the pin strategy documented in README.md: consumers pin
+# to @vX.Y.Z (exact) or @vN (floating), never @main.
+# ============================================================
+#
+# Usage: Actions tab -> Release -> Run workflow (from main), choose
+# the version bump. Use dry_run to preview the computed version
+# without pushing any tags or creating a release.
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: 'Preview the next version only; do not tag or publish'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Releases must be run from main (was ${{ github.ref }})."
+          exit 1
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: version
+        run: |
+          set -euo pipefail
+          latest=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n1)
+          if [ -z "$latest" ]; then
+            echo "::error::No existing vX.Y.Z tag found to bump from."
+            exit 1
+          fi
+
+          version=${latest#v}
+          IFS='.' read -r major minor patch <<< "$version"
+
+          case "${{ inputs.bump }}" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+
+          new_version="v${major}.${minor}.${patch}"
+          new_major="v${major}"
+
+          if git rev-parse "$new_version" >/dev/null 2>&1; then
+            echo "::error::Tag $new_version already exists."
+            exit 1
+          fi
+
+          echo "Previous: $latest -> New: $new_version (floating $new_major)"
+          echo "previous_version=$latest" >> "$GITHUB_OUTPUT"
+          echo "new_version=$new_version" >> "$GITHUB_OUTPUT"
+          echo "new_major=$new_major" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tags
+        if: ${{ !inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "${{ steps.version.outputs.new_version }}" \
+            -m "Release ${{ steps.version.outputs.new_version }}"
+          git push origin "${{ steps.version.outputs.new_version }}"
+
+          git tag -f "${{ steps.version.outputs.new_major }}"
+          git push -f origin "${{ steps.version.outputs.new_major }}"
+
+      - name: Publish GitHub Release
+        if: ${{ !inputs.dry_run }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.new_version }}
+          name: ${{ steps.version.outputs.new_version }}
+          generate_release_notes: true
