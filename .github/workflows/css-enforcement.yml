@@ -268,7 +268,7 @@ jobs:
           check_pattern "CSS-PERF-004 transition on layout properties" \
             'transition\s*:[^;]*(width|height|top|left|right|bottom|margin|padding)'
 
-          if [ ${#violations[@]:-0} -gt 0 ]; then
+          if [ ${#violations[@]} -gt 0 ]; then
             msg="Prohibited CSS performance patterns found:"$'\n'"${violations[*]}"
             if [ "${{ steps.mode.outputs.block }}" = "true" ]; then
               echo "::error::$msg"; exit 1

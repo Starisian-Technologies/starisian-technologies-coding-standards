@@ -286,7 +286,7 @@ jobs:
             -not -path './vendor/*' \
             -not -path './node_modules/*' \
             -print0)
-          if [ ${#missing[@]:-0} -gt 0 ]; then
+          if [ ${#missing[@]} -gt 0 ]; then
             msg="PHP-STRICT-001: missing declare(strict_types=1) in: ${missing[*]}"
             if [ "$MODE_BLOCK" = "true" ]; then
               echo "::error::$msg"
