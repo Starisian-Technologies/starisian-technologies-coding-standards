@@ -272,6 +272,7 @@ jobs:
             exit 1
           fi
           echo "phpstan_level=$level" >> "$GITHUB_OUTPUT"
+          echo "PHPSTAN_LEVEL=$level" >> "$GITHUB_ENV"
 
       - name: Install Composer dependencies
         if: hashFiles('composer.json') != ''
