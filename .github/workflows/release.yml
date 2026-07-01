@@ -32,6 +32,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -68,7 +72,7 @@ jobs:
           new_version="v${major}.${minor}.${patch}"
           new_major="v${major}"
 
-          if git rev-parse "$new_version" >/dev/null 2>&1; then
+          if git rev-parse --verify --quiet "refs/tags/$new_version" >/dev/null; then
             echo "::error::Tag $new_version already exists."
             exit 1
           fi
@@ -89,8 +93,10 @@ jobs:
             -m "Release ${{ steps.version.outputs.new_version }}"
           git push origin "${{ steps.version.outputs.new_version }}"
 
-          git tag -f "${{ steps.version.outputs.new_major }}"
-          git push -f origin "${{ steps.version.outputs.new_major }}"
+          new_major="${{ steps.version.outputs.new_major }}"
+          old_major_sha=$(git rev-parse --verify --quiet "refs/tags/${new_major}" || true)
+          git tag -f "$new_major"
+          git push --force-with-lease="refs/tags/${new_major}:${old_major_sha}" origin "$new_major"
 
       - name: Publish GitHub Release
         if: ${{ !inputs.dry_run }}
